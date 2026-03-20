@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %} My Todo {% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="card text-center">
+        <div class="card-header">
+            Your To-Do's!
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">
+                List of all your To-Do's
+            </h5>
+            <p class="card-text">
+                Information regarding all the things that need to be done
+            </p>
+            
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for todo in todos %}
+                {% if todo.complete == False %}
+                <tr class="pointer">
+                    <td>{{ loop.index }}</td>
+                    <td>{{ todo.title }}</td>
+                    <td>{{ todo.description }}</td>
+                    <td>
+                        <button class="btn btn-info"
+                                onclick="window.location.href='/todos/edit-todo-page/{{todo.id}}'" type="button">
+                            Edit
+                        </button>
+                    </td>
+                </tr>
+                {% elif todo.complete == True %}
+                <tr class="pointer alert alert-success">
+                    <td>{{ loop.index }}</td>
+                    <td class="strike-through-td">{{ todo.title }}</td>
+                    <td>{{ todo.description }}</td>
+                    <td>
+                        <button class="btn btn-info"
+                                onclick="window.location.href='/todos/edit-todo-page/{{todo.id}}'" type="button">
+                            Edit
+                        </button>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+            <a href="add-todo-page" class="btn btn-primary">Add New To-Do</a>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

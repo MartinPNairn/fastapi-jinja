@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %} Home {% endblock %}
+
+{% block content %}
+
+<div class="container" role="main" style="min-height:80vh; display:flex; align-items:center; justify-content:center; padding:24px;">
+  <div class="card text-center" style="width:100%; max-width:680px;">
+    <div class="card-header">Welcome!</div>
+
+    <div class="card-body">
+      <h5 class="card-title">Welcome back to your Tasks App</h5>
+      <p class="card-text">Log in to manage your tasks or create a new account to get started.</p>
+
+      <div style="display:flex; gap:12px; justify-content:center; margin-top:18px;">
+        <button class="btn btn-primary" type="button" onclick="window.location.href='/auth/login-page'">Login</button>
+        <button class="btn btn-info" type="button" onclick="window.location.href='/auth/register-page'">Register</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

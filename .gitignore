@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.coverage*
+coverage.xml
+htmlcov/
+
+# Virtual envs
+venv/
+.venv/
+env*/
+env/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Databases & logs
+*.db
+*.sqlite3
+log.txt
+
+# Secrets
+.env
+.env.*
