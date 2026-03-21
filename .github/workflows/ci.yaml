@@ -25,6 +25,11 @@ jobs:
         run: uv sync
 
       - name: Run Tests
+        env:
+          TOKEN_EXPIRATION_MINUTES: ${{ secrets.TOKEN_EXPIRATION_MINUTES }} 
+          SECRET_KEY: ${{ secrets.SECRET_KEY }} 
+          HASHING_ALGORITHM: ${{ secrets.HASHING_ALGORITHM }} 
+          SQLALCHEMY_DATABASE_URL: ${{ secrets.SQLALCHEMY_DATABASE_URL }} 
         run: uv run python -m pytest
 
   build:
