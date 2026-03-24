@@ -30,7 +30,7 @@ jobs:
           SECRET_KEY: ${{ secrets.SECRET_KEY }} 
           HASHING_ALGORITHM: ${{ secrets.HASHING_ALGORITHM }} 
           SQLALCHEMY_DATABASE_URL: ${{ secrets.SQLALCHEMY_DATABASE_URL }} 
-        run: uv run python -m pytest
+        run: uv run pytest --cov=app
 
   build:
     needs: test
