@@ -97,6 +97,7 @@ def client(db):
     """
     Return TestClient with dependency overrides for db and current_user.
     """
+
     def _make_client(user: User | None = None):
         def override_get_db():
             yield db
@@ -111,3 +112,27 @@ def client(db):
     yield _make_client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def mock_security(monkeypatch):
+
+    class MockUser:
+        email = "juan@gmail.com"
+        username = "juanperez"
+        first_name = "Juan"
+        last_name = "Perez"
+        hashed_password = "hashedpassjuan123"
+        phone_number = 11223344
+        role = "user"
+
+    def mock_authenticate_user(username: str, password: str, db):
+        if username and password == "secret":
+            return MockUser()
+        return False
+    
+    def mock_create_access_token(data: dict, expires_delta):
+        return "jwtpayload.jwtheader.jwtsignature"
+    
+    monkeypatch.setattr("app.api.v1.auth.authenticate_user", mock_authenticate_user)
+    monkeypatch.setattr("app.api.v1.auth.create_access_token", mock_create_access_token)
