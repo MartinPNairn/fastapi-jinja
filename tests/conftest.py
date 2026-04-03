@@ -118,6 +118,7 @@ def client(db):
 def mock_security(monkeypatch):
 
     class MockUser:
+        id = 1
         email = "juan@gmail.com"
         username = "juanperez"
         first_name = "Juan"
