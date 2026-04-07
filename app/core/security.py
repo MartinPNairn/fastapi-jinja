@@ -1,42 +1,41 @@
+from datetime import timedelta, datetime, UTC
 import os
-from dotenv import load_dotenv
-from datetime import datetime, timedelta, timezone
-from passlib.context import CryptContext
+
 from sqlalchemy.orm import Session
+from pwdlib import PasswordHash
 import jwt
+
 from app.crud import get_entry
 from app.models import User
+from app.schemas.auth import Token
 
-load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-HASHING_ALGORITHM = os.getenv("HASHING_ALGORITHM")
+SECRET_KEY = os.getenv("SECRET_KEY") or "secret-key"
+HASHING_ALGORITHM = os.getenv("HASHING_ALGORITHM") or "HS256"
 
-bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+password_hasher = PasswordHash.recommended()
 
 
 def create_password_hash(raw_password: str) -> str:
-    return bcrypt_context.hash(secret=raw_password)
+    return password_hasher.hash(raw_password)
 
 
-def verify_password_hash(raw_password: str, password_hash: str) -> bool:
-    return bcrypt_context.verify(raw_password, password_hash)
-
-
-def authenticate_user(username: str, password: str, db: Session) -> User | bool:
-    user = get_entry(User, db, User.username == username)
-    if not user:
-        print("User to authenticate has not been found.")
+def authenticate_user(username: str, password: str, db: Session) -> bool | User:
+    user = get_entry(User, db, User.username == username.lower())
+    if user is None:
         return False
     if not verify_password_hash(password, user.hashed_password):
-        print("User authentication has not been succesfull.")
         return False
     return user
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    to_encode = data.copy()
-    expiring_time = datetime.now(timezone.utc) + (expires_delta if expires_delta else timedelta(minutes=15))
-    to_encode.update({"exp": expiring_time})
-    encoded_jwt = jwt.encode(payload=to_encode, key=SECRET_KEY, algorithm=HASHING_ALGORITHM)
-    return encoded_jwt
+def verify_password_hash(raw_password: str, hashed_password: str) -> bool:
+    return password_hasher.verify(raw_password, hashed_password)
+
+
+def create_access_token(data: dict, expire_delta: timedelta | None = None) -> str:
+    payload = data.copy()
+    expiring_time = datetime.now(UTC) + (expire_delta if expire_delta else timedelta(minutes=15))
+    payload.update({"exp": expiring_time})
+    token_string = jwt.encode(payload=payload, key=SECRET_KEY, algorithm=HASHING_ALGORITHM)
+    return token_string
