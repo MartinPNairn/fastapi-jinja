@@ -4,10 +4,14 @@ import os
 from sqlalchemy.orm import Session
 from pwdlib import PasswordHash
 import jwt
+from dotenv import load_dotenv
 
 from app.crud import get_entry
 from app.models import User
 from app.schemas.auth import Token
+
+
+load_dotenv()
 
 
 SECRET_KEY = os.getenv("SECRET_KEY") or "secret-key"
