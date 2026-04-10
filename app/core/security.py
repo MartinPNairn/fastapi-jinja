@@ -1,7 +1,10 @@
 from datetime import timedelta, datetime, UTC
 import os
+from typing import Any, Dict
+from typing_extensions import Annotated, Doc
 
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 from pwdlib import PasswordHash
 import jwt
 from dotenv import load_dotenv
@@ -18,6 +21,11 @@ SECRET_KEY = os.getenv("SECRET_KEY") or "secret-key"
 HASHING_ALGORITHM = os.getenv("HASHING_ALGORITHM") or "HS256"
 
 password_hasher = PasswordHash.recommended()
+
+
+class InvalidCredentialsException(HTTPException):
+    def __init__(self) -> None:
+        super().__init__(status_code=401, detail="Could not validate credentials!")
 
 
 def create_password_hash(raw_password: str) -> str:
@@ -39,7 +47,23 @@ def verify_password_hash(raw_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict, expire_delta: timedelta | None = None) -> str:
     payload = data.copy()
-    expiring_time = datetime.now(UTC) + (expire_delta if expire_delta else timedelta(minutes=15))
+    expiring_time = datetime.now(UTC) + (
+        expire_delta if expire_delta else timedelta(minutes=15)
+    )
     payload.update({"exp": expiring_time})
-    token_string = jwt.encode(payload=payload, key=SECRET_KEY, algorithm=HASHING_ALGORITHM)
+    token_string = jwt.encode(
+        payload=payload, key=SECRET_KEY, algorithm=HASHING_ALGORITHM
+    )
     return token_string
+
+
+def verify_token(token: str) -> str:
+    try:
+        payload = jwt.decode(jwt=token, key=SECRET_KEY, algorithms=[HASHING_ALGORITHM])
+        username: str = payload.get("sub")
+        if not username:
+            raise InvalidCredentialsException
+        return username
+    except jwt.InvalidTokenError:
+        raise InvalidCredentialsException
+    

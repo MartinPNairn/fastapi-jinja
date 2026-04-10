@@ -2,7 +2,6 @@ from typing import Annotated
 import os
 from dotenv import load_dotenv
 
-import jwt
 from fastapi import HTTPException
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
@@ -13,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from app.db.session import SessionLocal
 from app.crud import get_entry
 from app.models import User
+from app.core.security import verify_token, InvalidCredentialsException
 
 load_dotenv()
 
@@ -36,21 +36,10 @@ FormDep = Annotated[OAuth2PasswordRequestForm, Depends()]
 
 
 async def get_current_user(token: TokenDep, db: SessionDep) -> User:
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Could not validate credentials. Bloody hell, mate!",
-    )
-    try:
-        payload = jwt.decode(jwt=token, key=SECRET_KEY, algorithms=[HASHING_ALGORITHM])
-        username: str = payload.get("sub")
-        user_id: int = payload.get("id")
-        if not username or not user_id:
-            raise credentials_exception
-    except jwt.InvalidTokenError:
-        raise credentials_exception
+    username = verify_token(token)
     user = get_entry(User, db, User.username == username)
     if not user:
-        raise credentials_exception
+        raise InvalidCredentialsException
     return user
 
 
