@@ -24,4 +24,4 @@ async def test_get_current_user_missing_payload(test_user, db):
         await get_current_user(token, db)
 
     assert exception_info.value.status_code == 401
-    assert exception_info.value.detail == "Could not validate credentials. Bloody hell, mate!"
+    assert exception_info.value.detail == "Could not validate credentials!"
