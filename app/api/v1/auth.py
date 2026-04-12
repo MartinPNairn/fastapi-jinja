@@ -9,7 +9,7 @@ from app.core.security import authenticate_user, create_access_token
 
 
 load_dotenv()
-ACCESS_KEY_EXPIRES_MINUTES = int(os.getenv("TOKEN_EXPIRATION_MINUTES"))
+ACCESS_KEY_EXPIRES_MINUTES = float(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES") or 15)
 
 router = APIRouter()
 
