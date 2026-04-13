@@ -45,10 +45,10 @@ def verify_password_hash(raw_password: str, hashed_password: str) -> bool:
     return password_hasher.verify(raw_password, hashed_password)
 
 
-def create_access_token(data: dict, expire_delta: timedelta | None = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     payload = data.copy()
     expiring_time = datetime.now(UTC) + (
-        expire_delta if expire_delta else timedelta(minutes=15)
+        expires_delta if expires_delta else timedelta(minutes=15)
     )
     payload.update({"exp": expiring_time})
     token_string = jwt.encode(
