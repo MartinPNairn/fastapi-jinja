@@ -52,7 +52,7 @@ def create_access_token(data: dict, expiration_time_minutes: float = 15) -> str:
 
 
 def create_refresh_token(data: dict, expiration_time_days: float = 7) -> str:
-    expiration_delta = timedelta(minutes=expiration_time_days)
+    expiration_delta = timedelta(days=expiration_time_days)
     token_string = create_jwt_token(data, expiration_delta)
     return token_string
 
