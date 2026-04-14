@@ -45,7 +45,19 @@ def verify_password_hash(raw_password: str, hashed_password: str) -> bool:
     return password_hasher.verify(raw_password, hashed_password)
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+def create_access_token(data: dict, expiration_time_minutes: float = 15) -> str:
+    expiration_delta = timedelta(minutes=expiration_time_minutes)
+    token_string = create_jwt_token(data, expiration_delta)
+    return token_string
+
+
+def create_refresh_token(data: dict, expiration_time_days: float = 7) -> str:
+    expiration_delta = timedelta(minutes=expiration_time_days)
+    token_string = create_jwt_token(data, expiration_delta)
+    return token_string
+
+
+def create_jwt_token(data: dict, expires_delta: timedelta) -> str:
     payload = data.copy()
     expiring_time = datetime.now(UTC) + (
         expires_delta if expires_delta else timedelta(minutes=15)
@@ -66,4 +78,3 @@ def verify_token(token: str) -> str:
         return username
     except jwt.InvalidTokenError:
         raise InvalidCredentialsException
-    

@@ -1,4 +1,3 @@
-from datetime import timedelta
 import jwt
 
 from app.core.security import authenticate_user, create_access_token
@@ -20,8 +19,8 @@ def test_authenticate_user(test_user, db):
 
 def test_create_access_token(test_user):
     data = {"sub": test_user.username, "id": test_user.id, "role": test_user.role}
-    expiration_time = timedelta(minutes=15)
-    token = create_access_token(data=data, expires_delta=expiration_time)
+    expiration_time = 15
+    token = create_access_token(data=data, expiration_time_minutes=expiration_time)
     assert token is not None
     assert isinstance(token, str)
 

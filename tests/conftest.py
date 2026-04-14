@@ -131,9 +131,9 @@ def mock_security(monkeypatch):
         if username and password == "secret":
             return MockUser()
         return False
-    
-    def mock_create_access_token(data: dict, expires_delta):
+
+    def mock_create_access_token(data: dict, expiration_time_minutes):
         return "jwtpayload.jwtheader.jwtsignature"
-    
+
     monkeypatch.setattr("app.api.v1.auth.authenticate_user", mock_authenticate_user)
     monkeypatch.setattr("app.api.v1.auth.create_access_token", mock_create_access_token)
