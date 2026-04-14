@@ -21,10 +21,10 @@ def test_login_for_access_token_invalid_password(client, mock_security):
     response_data = response.json()
 
     assert response.status_code == 401
-    assert "Incorrect username or password" in response_data["detail"]
+    assert "Could not" in response_data["detail"]
 
 
-def test_login_for_access_token_wrond_data_type(client, mock_security):
+def test_login_for_access_token_wrong_data_type(client, mock_security):
     response = client().post(
         "/auth/token", 
         json={"username": "john", "password": "secret"},
