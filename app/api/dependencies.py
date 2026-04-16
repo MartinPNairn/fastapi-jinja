@@ -36,7 +36,7 @@ FormDep = Annotated[OAuth2PasswordRequestForm, Depends()]
 
 
 async def get_current_user(token: TokenDep, db: SessionDep) -> User:
-    username = verify_token(token)
+    username = verify_token(token, "access")
     user = get_entry(User, db, User.username == username)
     if not user:
         raise InvalidCredentialsException

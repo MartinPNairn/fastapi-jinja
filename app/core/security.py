@@ -1,7 +1,5 @@
 from datetime import timedelta, datetime, UTC
 import os
-from typing import Any, Dict
-from typing_extensions import Annotated, Doc
 
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
@@ -11,7 +9,6 @@ from dotenv import load_dotenv
 
 from app.crud import get_entry
 from app.models import User
-from app.schemas.auth import Token
 
 
 load_dotenv()
@@ -24,8 +21,12 @@ password_hasher = PasswordHash.recommended()
 
 
 class InvalidCredentialsException(HTTPException):
-    def __init__(self) -> None:
-        super().__init__(status_code=401, detail="Could not validate credentials!")
+    def __init__(self, detail: str = "Could not validate credentials!") -> None:
+        super().__init__(
+            status_code=401,
+            detail=detail,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 def create_password_hash(raw_password: str) -> str:
@@ -47,34 +48,46 @@ def verify_password_hash(raw_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict, expiration_time_minutes: float = 15) -> str:
     expiration_delta = timedelta(minutes=expiration_time_minutes)
-    token_string = create_jwt_token(data, expiration_delta)
-    return token_string
+    return create_jwt_token(
+        data=data,
+        token_type="access",
+        expires_delta=expiration_delta,
+    )
 
 
 def create_refresh_token(data: dict, expiration_time_days: float = 7) -> str:
     expiration_delta = timedelta(days=expiration_time_days)
-    token_string = create_jwt_token(data, expiration_delta)
-    return token_string
-
-
-def create_jwt_token(data: dict, expires_delta: timedelta) -> str:
-    payload = data.copy()
-    expiring_time = datetime.now(UTC) + (
-        expires_delta if expires_delta else timedelta(minutes=15)
+    return create_jwt_token(
+        data=data,
+        token_type="refresh",
+        expires_delta=expiration_delta,
     )
-    payload.update({"exp": expiring_time})
-    token_string = jwt.encode(
-        payload=payload, key=SECRET_KEY, algorithm=HASHING_ALGORITHM
+
+
+def create_jwt_token(data: dict, token_type: str, expires_delta: timedelta) -> str:
+    to_encode = data.copy()
+    expiring_time = datetime.now(UTC) + expires_delta
+    to_encode.update(
+        {
+            "exp": expiring_time,
+            "token_type": token_type,
+        }
     )
-    return token_string
+    return jwt.encode(payload=to_encode, key=SECRET_KEY, algorithm=HASHING_ALGORITHM)
 
 
-def verify_token(token: str) -> str:
+def verify_token(token: str, expected_type: str) -> str:
     try:
         payload = jwt.decode(jwt=token, key=SECRET_KEY, algorithms=[HASHING_ALGORITHM])
-        username: str = payload.get("sub")
+        username = payload.get("sub")
         if not username:
             raise InvalidCredentialsException
+        if payload.get("token_type") != expected_type:
+            raise InvalidCredentialsException(detail="Invalid token type")
         return username
+
+    except jwt.ExpiredSignatureError:
+        raise InvalidCredentialsException(detail="Token has expired")
+
     except jwt.InvalidTokenError:
-        raise InvalidCredentialsException
+        raise InvalidCredentialsException(detail="Invalid Token")
