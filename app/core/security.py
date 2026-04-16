@@ -80,9 +80,11 @@ def verify_token(token: str, expected_type: str) -> str:
     try:
         payload = jwt.decode(jwt=token, key=SECRET_KEY, algorithms=[HASHING_ALGORITHM])
         username = payload.get("sub")
+        token_type = payload.get("token_type")
+        
         if not username:
             raise InvalidCredentialsException
-        if payload.get("token_type") != expected_type:
+        if token_type != expected_type:
             raise InvalidCredentialsException(detail="Invalid token type")
         return username
 
