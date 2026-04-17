@@ -22,7 +22,7 @@ HASHING_ALGORITHM = os.getenv("HASHING_ALGORITHM")
 #
 templates = Jinja2Templates(directory="app/frontend/templates")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", refreshUrl="/auth/refresh")
 
 
 def get_db():
