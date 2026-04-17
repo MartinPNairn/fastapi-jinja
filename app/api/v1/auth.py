@@ -76,3 +76,6 @@ def refresh_for_new_access_token(
         expiration_time_minutes=ACCESS_TOKEN_EXPIRE_MINUTES,
     )
     return Token(access_token=new_access_token, token_type="bearer")
+
+
+# TODO: define /auth/logout endpoint
