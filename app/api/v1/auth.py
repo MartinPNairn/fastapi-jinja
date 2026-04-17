@@ -79,3 +79,8 @@ def refresh_for_new_access_token(
 
 
 # TODO: define /auth/logout endpoint
+@router.post("/logout")
+def logout(response: Response):
+    response.delete_cookie(key="access_token", path="/")
+    response.delete_cookie(key="refresh_token", path="/auth/refresh")
+    return {"detail": "Logged out"}
