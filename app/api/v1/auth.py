@@ -49,7 +49,7 @@ async def login_for_access_and_refresh_token(
         value=refresh_token,
         httponly=True,
         secure=ENVIRONMENT != "development",
-        path="/auth/refresh",
+        path="/",
         max_age=int(REFRESH_TOKEN_EXPIRE_DAYS * 86400),
     )
 
@@ -82,5 +82,5 @@ def refresh_for_new_access_token(
 @router.post("/logout")
 def logout(response: Response):
     response.delete_cookie(key="access_token", path="/")
-    response.delete_cookie(key="refresh_token", path="/auth/refresh")
+    response.delete_cookie(key="refresh_token", path="/")
     return {"detail": "Logged out"}
