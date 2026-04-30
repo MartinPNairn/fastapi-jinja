@@ -148,7 +148,7 @@ if (loginForm) {
         }
 
         try {
-            const response = await fetch("/auth/token", {
+            const response = await fetch("/auth/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",

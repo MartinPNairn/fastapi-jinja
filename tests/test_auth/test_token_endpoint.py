@@ -2,7 +2,7 @@
 
 def test_login_for_access_token_success(client, mock_security):
     response = client().post(
-        "/auth/token", 
+        "/auth/login", 
         data={"username": "john", "password": "secret"},
     )
     response_data = response.json()
@@ -15,7 +15,7 @@ def test_login_for_access_token_success(client, mock_security):
 
 def test_login_for_access_token_invalid_password(client, mock_security):
     response = client().post(
-        "/auth/token", 
+        "/auth/login", 
         data={"username": "john", "password": "a-wrong-password-mate"},
     )
     response_data = response.json()
@@ -26,7 +26,7 @@ def test_login_for_access_token_invalid_password(client, mock_security):
 
 def test_login_for_access_token_wrong_data_type(client, mock_security):
     response = client().post(
-        "/auth/token", 
+        "/auth/login", 
         json={"username": "john", "password": "secret"},
     )
 
@@ -35,7 +35,7 @@ def test_login_for_access_token_wrong_data_type(client, mock_security):
 
 def test_login_for_access_token_wrong_or_no_data(client, mock_security):
     response = client().post(
-        "/auth/token", 
+        "/auth/login", 
         data={"asdsd": "alksdjals"},
     )
     response_data = response.json()

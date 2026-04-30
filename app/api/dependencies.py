@@ -20,7 +20,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 HASHING_ALGORITHM = os.getenv("HASHING_ALGORITHM")
 
 templates = Jinja2Templates(directory="app/frontend/templates")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", refreshUrl="/auth/refresh")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", refreshUrl="/auth/refresh")
 
 
 def get_db():

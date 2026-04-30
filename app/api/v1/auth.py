@@ -24,7 +24,7 @@ router = APIRouter()
 
 
 # Login and generate JWT token for user
-@router.post("/token", response_model=Token)
+@router.post("/login", response_model=Token)
 async def login_for_access_and_refresh_token(
     response: Response,
     form_data: FormDep,
