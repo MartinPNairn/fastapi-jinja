@@ -1,11 +1,10 @@
-import os
-from dotenv import load_dotenv
 from fastapi import APIRouter, Response, Request
 
 from app.api.dependencies import SessionDep, FormDep
 from app.schemas import Token
 from app.crud import get_entry
 from app.models import User
+from app.core.config import SettingsDep
 from app.core.security import (
     authenticate_user,
     create_access_token,
@@ -14,11 +13,6 @@ from app.core.security import (
     InvalidCredentialsException,
 )
 
-
-load_dotenv()
-ENVIRONMENT = os.getenv("ENVIRONMENT") or "development"
-ACCESS_TOKEN_EXPIRE_MINUTES = float(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES") or 15)
-REFRESH_TOKEN_EXPIRE_DAYS = float(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS") or 7)
 
 router = APIRouter()
 
@@ -29,6 +23,7 @@ async def login_for_access_and_refresh_token(
     response: Response,
     form_data: FormDep,
     db: SessionDep,
+    settings: SettingsDep,
 ) -> Token:
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
@@ -36,21 +31,21 @@ async def login_for_access_and_refresh_token(
 
     access_token = create_access_token(
         data={"sub": user.username, "id": user.id, "role": user.role},
-        expiration_time_minutes=ACCESS_TOKEN_EXPIRE_MINUTES,
+        expiration_time_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
     )
 
     refresh_token = create_refresh_token(
         data={"sub": user.username},
-        expiration_time_days=REFRESH_TOKEN_EXPIRE_DAYS,
+        expiration_time_days=settings.REFRESH_TOKEN_EXPIRE_DAYS,
     )
 
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=ENVIRONMENT != "development",
+        secure=settings.ENVIRONMENT != "development",
         path="/",
-        max_age=int(REFRESH_TOKEN_EXPIRE_DAYS * 86400),
+        max_age=int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
     )
 
     return Token(access_token=access_token, token_type="bearer")
@@ -60,6 +55,7 @@ async def login_for_access_and_refresh_token(
 def refresh_for_new_access_token(
     request: Request,
     db: SessionDep,
+    settings: SettingsDep,
 ) -> Token:
     refresh_token = request.cookies.get("refresh_token")
 
@@ -73,7 +69,7 @@ def refresh_for_new_access_token(
 
     new_access_token = create_access_token(
         data={"sub": user.username, "id": user.id, "role": user.role},
-        expiration_time_minutes=ACCESS_TOKEN_EXPIRE_MINUTES,
+        expiration_time_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
     )
     return Token(access_token=new_access_token, token_type="bearer")
 

@@ -1,7 +1,10 @@
 import jwt
 
 from app.core.security import authenticate_user, create_access_token
-from tests.conftest import SECRET_KEY, HASHING_ALGORITHM
+from app.core.config import get_settings
+
+
+settings = get_settings()
 
 
 def test_authenticate_user(test_user, db):
@@ -24,7 +27,7 @@ def test_create_access_token(test_user):
     assert token is not None
     assert isinstance(token, str)
 
-    payload = jwt.decode(token, SECRET_KEY, algorithms=[HASHING_ALGORITHM])
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.HASHING_ALGORITHM])
     assert payload["id"] == test_user.id
     assert payload["sub"] == test_user.username
     assert payload["role"] == test_user.role
