@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: float = 7.0
     SECRET_KEY: str = Field(default="", min_length=1)
     HASHING_ALGORITHM: str = "HS256"
+    DATABASE_URL: str = "sqlite:///database.db"
 
     model_config = SettingsConfigDict(
         env_file=".env",
