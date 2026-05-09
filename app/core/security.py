@@ -1,21 +1,14 @@
 from datetime import timedelta, datetime, UTC
-import os
 
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from pwdlib import PasswordHash
 import jwt
-from dotenv import load_dotenv
 
 from app.crud import get_entry
 from app.models import User
+from app.core.config import get_settings
 
-
-load_dotenv()
-
-
-SECRET_KEY = os.getenv("SECRET_KEY") or "secret-key"
-HASHING_ALGORITHM = os.getenv("HASHING_ALGORITHM") or "HS256"
 
 password_hasher = PasswordHash.recommended()
 
@@ -52,7 +45,7 @@ def create_access_token(data: dict, expiration_time_minutes: float = 15) -> str:
         data=data,
         token_type="access",
         expires_delta=expiration_delta,
-    )
+    )  # type: ignore
 
 
 def create_refresh_token(data: dict, expiration_time_days: float = 7) -> str:
@@ -61,10 +54,11 @@ def create_refresh_token(data: dict, expiration_time_days: float = 7) -> str:
         data=data,
         token_type="refresh",
         expires_delta=expiration_delta,
-    )
+    )  # type: ignore
 
 
 def create_jwt_token(data: dict, token_type: str, expires_delta: timedelta) -> str:
+    settings = get_settings()
     to_encode = data.copy()
     expiring_time = datetime.now(UTC) + expires_delta
     to_encode.update(
@@ -73,15 +67,20 @@ def create_jwt_token(data: dict, token_type: str, expires_delta: timedelta) -> s
             "token_type": token_type,
         }
     )
-    return jwt.encode(payload=to_encode, key=SECRET_KEY, algorithm=HASHING_ALGORITHM)
+    return jwt.encode(
+        payload=to_encode, key=settings.SECRET_KEY, algorithm=settings.HASHING_ALGORITHM
+    )
 
 
 def verify_token(token: str, expected_type: str) -> str:
     try:
-        payload = jwt.decode(jwt=token, key=SECRET_KEY, algorithms=[HASHING_ALGORITHM])
+        settings = get_settings()
+        payload = jwt.decode(
+            jwt=token, key=settings.SECRET_KEY, algorithms=[settings.HASHING_ALGORITHM]
+        )
         username = payload.get("sub")
         token_type = payload.get("token_type")
-        
+
         if not username:
             raise InvalidCredentialsException()
         if token_type != expected_type:

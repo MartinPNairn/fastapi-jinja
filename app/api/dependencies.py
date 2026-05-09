@@ -1,9 +1,6 @@
 from typing import Annotated
-import os
-from dotenv import load_dotenv
 
-from fastapi import Request
-from fastapi.params import Depends
+from fastapi import Request, Depends
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
@@ -14,10 +11,6 @@ from app.crud import get_entry
 from app.models import User
 from app.core.security import verify_token, InvalidCredentialsException
 
-load_dotenv()
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-HASHING_ALGORITHM = os.getenv("HASHING_ALGORITHM")
 
 templates = Jinja2Templates(directory="app/frontend/templates")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", refreshUrl="/auth/refresh")
