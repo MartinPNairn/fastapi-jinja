@@ -1,6 +1,3 @@
-import os
-
-from dotenv import load_dotenv
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -11,16 +8,13 @@ from app.db.base import Base
 from app.main import app
 from app.api.dependencies import get_db, get_current_user
 from app.core.security import create_password_hash
+from app.core.config import Settings, get_settings
 
-
-load_dotenv()
 
 SQLALCHEMY_TEST_URL = "sqlite:///./test_db.db"
+
 engine = create_engine(SQLALCHEMY_TEST_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-HASHING_ALGORITHM = os.getenv("HASHING_ALGORITHM")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -95,8 +89,14 @@ def test_todo(db, test_user):
 @pytest.fixture()
 def client(db):
     """
-    Return TestClient with dependency overrides for db and current_user.
+    Return TestClient with dependency overrides for settings, db and current_user.
     """
+
+    def get_test_settings():
+        return Settings(
+            SECRET_KEY="some-secret-key-long-enough-hehe",
+            DATABASE_URL=SQLALCHEMY_TEST_URL,
+        )
 
     def _make_client(user: User | None = None):
         def override_get_db():
@@ -107,10 +107,10 @@ def client(db):
 
         app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_user] = override_get_current_user
+        app.dependency_overrides[get_settings] = get_test_settings
         return TestClient(app)
 
     yield _make_client
-
     app.dependency_overrides.clear()
 
 
