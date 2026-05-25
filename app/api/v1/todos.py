@@ -2,62 +2,89 @@ from typing import Annotated
 
 from fastapi import APIRouter, Path, HTTPException, status
 
-from app.api.dependencies import SessionDep, CurrentUserDep
-from app.models import Todo
+from app.api.dependencies import CurrentUserDep
 from app.schemas import TodoResponse, TodoRequest
-from app.crud import get_entry, create_entry, update_entry, get_all_entries, delete_entry, DatabaseError
+from app.repositories.todo_repository import (
+    TodoReaderRepoDep,
+    TodoWriterRepoDep,
+    DatabaseError,
+)
+
 
 router = APIRouter()
 
 
-@router.get("/all", status_code=status.HTTP_200_OK, response_model=list[TodoResponse])
-async def read_all(user: CurrentUserDep, db: SessionDep):
-    all_todos = get_all_entries(Todo, db, Todo.owner_id == user.id)
-    if not all_todos:
-        raise HTTPException(404, detail="No To-Dos found.")
-    return all_todos
+@router.get("/all", status_code=status.HTTP_200_OK)
+async def read_all(
+    user: CurrentUserDep,
+    todo_reader_repo: TodoReaderRepoDep,
+) -> list[TodoResponse]:
+    all_todos = todo_reader_repo.get_all_todos(user.id)
+    return [TodoResponse.model_validate(todo) for todo in all_todos]
 
 
-@router.post("/create", status_code=status.HTTP_201_CREATED, response_model=TodoResponse)
-async def create_todo(user: CurrentUserDep, todo_data: TodoRequest, db: SessionDep) -> TodoResponse:
-    new_todo = Todo(**todo_data.model_dump(), owner_id=user.id)
+@router.post("/create", status_code=status.HTTP_201_CREATED)
+async def create_todo(
+    user: CurrentUserDep,
+    todo_data: TodoRequest,
+    todo_writer_repo: TodoWriterRepoDep,
+) -> TodoResponse:
     try:
-        create_entry(new_todo, db)
-        return new_todo
-    except DatabaseError as e:
-        raise HTTPException(status_code=500, detail=f"Error while creating new To-Do. Rolling back. Error: {e}")
+        new_todo = todo_writer_repo.create_todo(todo_data.model_dump(), user.id)
+        return TodoResponse.model_validate(new_todo)
+    except DatabaseError:
+        raise HTTPException(
+            status_code=500,
+            detail="Error while creating new To-Do.",
+        )
 
 
 @router.put("/update/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_todo(
-        todo_id: Annotated[int, Path(title="To-do's ID.", gt=-1)],
-        todo_data: TodoRequest,
-        user: CurrentUserDep,
-        db: SessionDep,
+    todo_id: Annotated[int, Path(title="To-do's ID.", gt=-1)],
+    new_todo_data: TodoRequest,
+    user: CurrentUserDep,
+    todo_writer_repo: TodoWriterRepoDep,
 ):
-    todo_to_update = get_entry(Todo, db, Todo.id == todo_id)
-    if not todo_to_update:
-        raise HTTPException(status_code=404, detail="To-Do to update not found. Rolling back.")
-    if todo_to_update.owner_id != user.id:
-        raise HTTPException(status_code=403, detail="To-Do to update not linked to current user.")
-    if not update_entry(todo_id, Todo, todo_data, db):
-        raise HTTPException(status_code=404, detail="To-Do to update not found. Rolling back.")
+    updated = todo_writer_repo.update_todo(
+        new_todo_data.model_dump(exclude_unset=True, exclude_none=True),
+        todo_id,
+        user.id,
+    )
+    if not updated:
+        raise HTTPException(
+            status_code=404, 
+            detail="To-Do to update not found",
+        )
 
 
 @router.delete("/delete/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo(todo_id: Annotated[int, Path(title="To-do's ID.", gt=-1)], db: SessionDep, user: CurrentUserDep):
-    todo_to_delete = get_entry(Todo, db, Todo.id == todo_id)
-    if not todo_to_delete:
-        raise HTTPException(status_code=404, detail="To-Do to delete not found. Rolling back.")
-    if todo_to_delete.owner_id != user.id:
-        raise HTTPException(status_code=403, detail="To-Do to delete not linked to current user.")
-    if not delete_entry(todo_id, Todo, db):
-        raise HTTPException(status_code=404, detail="To-Do to delete not found. Rolling back.")
+async def delete_todo(
+    todo_id: Annotated[int, Path(title="To-do's ID.", gt=-1)],
+    todo_writer_repo: TodoWriterRepoDep,
+    user: CurrentUserDep,
+):  
+    deleted = todo_writer_repo.delete_todo(
+        todo_id, 
+        user.id,
+    )
+    if not deleted:
+        raise HTTPException(
+            status_code=404, 
+            detail="To-Do to delete not found.",
+        )
 
 
-@router.get("/todo/{todo_id}", status_code=status.HTTP_200_OK, response_model=TodoResponse)
-async def get_todo(todo_id: Annotated[int, Path(title="Todo's ID.", gt=-1)], db: SessionDep) -> TodoResponse:
-    todo = get_entry(Todo, db, Todo.id == todo_id)
+@router.get("/todo/{todo_id}", status_code=status.HTTP_200_OK)
+async def get_todo(
+    todo_id: Annotated[int, Path(title="Todo's ID.", gt=-1)],
+    todo_reader_repo: TodoReaderRepoDep,
+    user: CurrentUserDep,
+) -> TodoResponse:
+    todo = todo_reader_repo.get_todo_by_id(todo_id, user.id)
     if not todo:
-        raise HTTPException(404, detail="To-Do not found.")
-    return todo
+        raise HTTPException(
+            status_code=404, 
+            detail="To-Do not found.",
+        )
+    return TodoResponse.model_validate(todo)

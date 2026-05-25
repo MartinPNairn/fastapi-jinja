@@ -1,6 +1,6 @@
 from typing import Annotated, Protocol
 
-from fastapi.params import Depends
+from fastapi import Depends
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import select, update, delete
 from sqlalchemy.orm import Session
@@ -14,22 +14,17 @@ class DatabaseError(Exception):
 
 
 class TodoWriter(Protocol):
-    def create_todo(self, todo_data: dict, owner_id: int) -> Todo:
-        ...
+    def create_todo(self, todo_data: dict, owner_id: int) -> Todo: ...
 
-    def update_todo(self, todo_data: dict, todo_id: int) -> Todo | None:
-        ...
+    def update_todo(self, todo_data: dict, todo_id: int, owner_id: int) -> Todo | None: ...
 
-    def delete_todo(self, todo_id: int) -> bool:
-        ...
+    def delete_todo(self, todo_id: int, owner_id: int) -> bool: ...
 
 
 class TodoReader(Protocol):
-    def get_all_todos(self, owner_id: int) -> list[Todo]:
-        ...
+    def get_all_todos(self, owner_id: int) -> list[Todo]: ...
 
-    def get_todo_by_id(self, todo_id: int) -> Todo | None:
-        ...
+    def get_todo_by_id(self, todo_id: int, owner_id: int) -> Todo | None: ...
 
 
 class TodoRepository:
@@ -48,45 +43,58 @@ class TodoRepository:
             raise DatabaseError("Integrity constraint failed") from e
         except SQLAlchemyError as e:
             self.db.rollback()
-            raise DatabaseError(f"Failed to create new entry in database: {e}") from e
-        
+            raise DatabaseError("Failed to create todo") from e
+
     def get_all_todos(self, owner_id: int) -> list[Todo]:
         try:
-            stmt = select(Todo).where(Todo.owner_id == owner_id)
-            todos = self.db.execute(stmt).scalars().all()
-            return list(todos)
+            stmt = (
+                select(Todo)
+                .where(Todo.owner_id == owner_id)
+            )
+            return list(self.db.execute(stmt).scalars().all())
         except SQLAlchemyError as e:
-            raise DatabaseError(f"Failed to retrieve todos from database: {e}") from e
+            raise DatabaseError("Failed to retrieve todos") from e
 
-    def get_todo_by_id(self, todo_id: int) -> Todo | None:
+    def get_todo_by_id(self, todo_id: int, owner_id: int) -> Todo | None:
         try:
-            stmt = select(Todo).where(Todo.id == todo_id)
-            todo = self.db.execute(stmt).scalars().first()
-            return todo
+            stmt = (
+                select(Todo)
+                .where(Todo.id == todo_id, Todo.owner_id == owner_id)
+            )
+            return self.db.execute(stmt).scalar_one_or_none()
         except SQLAlchemyError as e:
-            raise DatabaseError(f"Failed to retrieve todo from database: {e}") from e
+            raise DatabaseError("Failed to retrieve todo") from e
 
-    def update_todo(self, todo_data: dict, todo_id: int) -> Todo | None:
+    def update_todo(self, todo_data: dict, todo_id: int, owner_id: int) -> Todo | None:
         try:
-            stmt = update(Todo).where(Todo.id == todo_id).values(**todo_data)
+            stmt = (
+                update(Todo)
+                .where(Todo.id == todo_id, Todo.owner_id == owner_id)
+                .values(**todo_data)
+                .returning(Todo)
+            )
             result = self.db.execute(stmt)
-            if result.rowcount == 0:
+            todo = result.scalar_one_or_none()
+            if todo is None:
                 return None
             self.db.commit()
+            return todo
         except SQLAlchemyError as e:
             self.db.rollback()
-            raise DatabaseError(f"Failed to update todo in database: {e}") from e
-        return self.get_todo_by_id(todo_id)
+            raise DatabaseError("Failed to update todo") from e
 
-    def delete_todo(self, todo_id: int) -> bool:
+    def delete_todo(self, todo_id: int, owner_id: int) -> bool:
         try:
-            stmt = delete(Todo).where(Todo.id == todo_id)
+            stmt = (
+                delete(Todo)
+                .where(Todo.id == todo_id, Todo.owner_id == owner_id)
+            )
             result = self.db.execute(stmt)
             self.db.commit()
             return result.rowcount > 0
         except SQLAlchemyError as e:
             self.db.rollback()
-            raise DatabaseError(f"Failed to delete todo from database: {e}") from e
+            raise DatabaseError("Failed to delete todo") from e
 
 
 def get_todo_repository(db: SessionDep) -> TodoRepository:
