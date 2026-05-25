@@ -54,7 +54,7 @@ async def update_todo(
     if not updated:
         raise HTTPException(
             status_code=404, 
-            detail="To-Do to update not found",
+            detail="To-Do to update not found.",
         )
 
 

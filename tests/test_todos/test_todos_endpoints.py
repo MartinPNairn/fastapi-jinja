@@ -92,7 +92,7 @@ def test_update_todo_not_found(client, test_user, db):
     test_client = client(test_user)
     response = test_client.put("/todos/update/111", json=request_data.model_dump())
     assert response.status_code == 404
-    assert response.json() == {'detail': 'To-Do to update not found. Rolling back.'}
+    assert response.json() == {'detail': 'To-Do to update not found.'}
 
 
 def test_update_todo_wrong_user(client, test_user, db, test_todo):
@@ -107,8 +107,8 @@ def test_update_todo_wrong_user(client, test_user, db, test_todo):
     )
     test_client = client(test_user)
     response = test_client.put(f"/todos/update/{test_todo.id}", json=request_data.model_dump())
-    assert response.status_code == 403
-    assert response.json() == {'detail': 'To-Do to update not linked to current user.'}
+    assert response.status_code == 404
+    assert response.json() == {'detail': 'To-Do to update not found.'}
     assert test_todo.owner_id != test_user.id
 
 
@@ -125,4 +125,4 @@ def test_delete_todo_not_found(client, test_user, db):
     test_client = client(test_user)
     response = test_client.delete(f"/todos/delete/{unreal_id}")
     assert response.status_code == 404
-    assert response.json() == {"detail": "To-Do to delete not found. Rolling back."}
+    assert response.json() == {"detail": "To-Do to delete not found."}
