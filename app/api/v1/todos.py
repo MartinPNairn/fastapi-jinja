@@ -19,7 +19,7 @@ async def read_all(
     user: CurrentUserDep,
     todo_reader_repo: TodoReaderRepoDep,
 ) -> list[TodoResponse]:
-    all_todos = todo_reader_repo.get_all_todos(user.id)
+    all_todos = todo_reader_repo.get_all_todos_for_owner(user.id)
     return [TodoResponse.model_validate(todo) for todo in all_todos]
 
 
@@ -64,7 +64,7 @@ async def delete_todo(
     todo_writer_repo: TodoWriterRepoDep,
     user: CurrentUserDep,
 ):  
-    deleted = todo_writer_repo.delete_todo(
+    deleted = todo_writer_repo.delete_todo_for_owner(
         todo_id, 
         user.id,
     )

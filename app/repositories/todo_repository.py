@@ -18,11 +18,16 @@ class TodoWriter(Protocol):
 
     def update_todo(self, todo_data: dict, todo_id: int, owner_id: int) -> Todo | None: ...
 
-    def delete_todo(self, todo_id: int, owner_id: int) -> bool: ...
+    def delete_todo(self, todo_id: int) -> bool: ...
+
+    def delete_todo_for_owner(self, todo_id: int, owner_id: int) -> bool: ...
 
 
 class TodoReader(Protocol):
-    def get_all_todos(self, owner_id: int) -> list[Todo]: ...
+
+    def get_all_todos(self) -> list[Todo]: ...
+
+    def get_all_todos_for_owner(self, owner_id: int) -> list[Todo]: ...
 
     def get_todo_by_id(self, todo_id: int, owner_id: int) -> Todo | None: ...
 
@@ -45,7 +50,7 @@ class TodoRepository:
             self.db.rollback()
             raise DatabaseError("Failed to create todo") from e
 
-    def get_all_todos(self, owner_id: int) -> list[Todo]:
+    def get_all_todos_for_owner(self, owner_id: int) -> list[Todo]:
         try:
             stmt = (
                 select(Todo)
@@ -54,6 +59,13 @@ class TodoRepository:
             return list(self.db.execute(stmt).scalars().all())
         except SQLAlchemyError as e:
             raise DatabaseError("Failed to retrieve todos") from e
+
+    def get_all_todos(self) -> list[Todo]:
+        try:
+            return list(self.db.execute(select(Todo)).scalars().all())
+        except SQLAlchemyError as e:
+            raise DatabaseError("Failed to retrieve todos") from e
+        
 
     def get_todo_by_id(self, todo_id: int, owner_id: int) -> Todo | None:
         try:
@@ -83,7 +95,21 @@ class TodoRepository:
             self.db.rollback()
             raise DatabaseError("Failed to update todo") from e
 
-    def delete_todo(self, todo_id: int, owner_id: int) -> bool:
+    def delete_todo(self, todo_id: int) -> bool:
+        try:
+            stmt = (
+                delete(Todo)
+                .where(Todo.id == todo_id)
+            )
+            result = self.db.execute(stmt)
+            self.db.commit()
+            return result.rowcount > 0
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            raise DatabaseError("Failed to delete todo") from e
+        
+
+    def delete_todo_for_owner(self, todo_id: int, owner_id: int) -> bool:
         try:
             stmt = (
                 delete(Todo)
