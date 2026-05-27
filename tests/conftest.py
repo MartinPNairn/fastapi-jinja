@@ -87,6 +87,16 @@ def test_todo(db, test_user):
 
 
 @pytest.fixture()
+def valid_todo_payload():
+    return {
+        "title": "A new todo",
+        "description": "This is a todo",
+        "priority": 1,
+        "complete": False
+    }
+
+
+@pytest.fixture()
 def client(db):
     """
     Return TestClient with dependency overrides for settings, db and current_user.
