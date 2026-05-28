@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from app.api.dependencies import templates, CookieCurrentUserDep, SessionDep
-from app.crud import get_all_entries, get_entry
-from app.models import Todo
+from app.api.dependencies import templates, CookieCurrentUserDep
+from app.repositories.todo_repository import TodoReaderRepoDep
 from app.api.template_rendering.utils import redirect
 
 router = APIRouter()
@@ -11,13 +10,13 @@ router = APIRouter()
 @router.get("/todos-page", response_class=HTMLResponse)
 async def render_todo_page(
     request: Request,
-    db: SessionDep,
     user: CookieCurrentUserDep,
+    todo_repo: TodoReaderRepoDep,
 ):
     if not user:
         return redirect("/auth/login-page", 307)
 
-    todos = get_all_entries(Todo, db, Todo.owner_id == user.id)
+    todos = todo_repo.get_all_todos(user.id)
     return templates.TemplateResponse(
         request=request,
         name="todo.html",
@@ -43,14 +42,14 @@ async def render_add_todo_page(
 @router.get("/edit-todo-page/{todo_id}", response_class=HTMLResponse)
 async def render_edit_todo_page(
     request: Request,
-    db: SessionDep,
     todo_id: int,
     user: CookieCurrentUserDep,
+    todo_repo: TodoReaderRepoDep,
 ):
     if not user:
         return redirect("/auth/login-page", 307)
 
-    todo = get_entry(Todo, db, id=todo_id)
+    todo = todo_repo.get_todo_by_id(todo_id, user.id)
     return templates.TemplateResponse(
         request=request,
         name="edit-todo.html",
