@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.get("/users", status_code=status.HTTP_200_OK)
 async def get_all_users(
-    user: CurrentUserDep, 
+    user: CurrentUserDep,
     db: SessionDep,
 ) -> list[UserResponse]:
     if not user or user.role.casefold() != "admin":
@@ -27,7 +27,7 @@ async def get_all_users(
 
 @router.get("/todos", status_code=status.HTTP_200_OK)
 async def get_all_todos(
-    user: CurrentUserDep, 
+    user: CurrentUserDep,
     todo_reader_repo: TodoReaderRepoDep,
 ) -> list[TodoResponse]:
     if not user or user.role.casefold() != "admin":
@@ -39,7 +39,11 @@ async def get_all_todos(
 
 
 @router.delete("/todos/delete/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo(user: CurrentUserDep, todo_writer_repo: TodoWriterRepoDep, todo_id: Annotated[int, Path(gt=0)]):
+async def delete_todo(
+    user: CurrentUserDep,
+    todo_writer_repo: TodoWriterRepoDep,
+    todo_id: Annotated[int, Path(gt=0)],
+):
     if not user or user.role.casefold() != "admin":
         raise HTTPException(status_code=401, detail="Authentication failed.")
     entry_deleted = todo_writer_repo.delete_todo(todo_id)
