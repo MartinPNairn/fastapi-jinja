@@ -84,7 +84,7 @@ class TodoRepository:
 
             todo = result.scalar_one_or_none()
             if todo is None:
-                self.db.rollback()
+                # self.db.rollback()
                 return None
             
             self.db.commit()
@@ -100,7 +100,7 @@ class TodoRepository:
 
             deleted = result.rowcount > 0
             if not deleted:
-                self.db.rollback()
+                # self.db.rollback()
                 return False
             
             self.db.commit()
@@ -116,7 +116,7 @@ class TodoRepository:
 
             deleted = result.rowcount > 0
             if not deleted:
-                self.db.rollback()
+                # self.db.rollback()
                 return False
             
             self.db.commit()
