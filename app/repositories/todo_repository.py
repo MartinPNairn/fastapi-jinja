@@ -14,65 +14,65 @@ class DatabaseError(Exception):
 
 
 class TodoWriter(Protocol):
-    def create_todo(self, todo_data: dict, owner_id: int) -> Todo: ...
+    def create(self, todo_data: dict, owner_id: int) -> Todo: ...
 
-    def update_todo(self, todo_data: dict, todo_id: int, owner_id: int) -> Todo | None: ...
+    def update(self, todo_data: dict, todo_id: int, owner_id: int) -> Todo | None: ...
 
-    def delete_todo(self, todo_id: int) -> bool: ...
+    def delete(self, todo_id: int) -> bool: ...
 
-    def delete_todo_for_owner(self, todo_id: int, owner_id: int) -> bool: ...
+    def delete_for_owner(self, todo_id: int, owner_id: int) -> bool: ...
 
 
 class TodoReader(Protocol):
-    def get_all_todos(self) -> list[Todo]: ...
+    def get_all(self) -> list[Todo]: ...
 
-    def get_all_todos_for_owner(self, owner_id: int) -> list[Todo]: ...
+    def get_all_for_owner(self, owner_id: int) -> list[Todo]: ...
 
-    def get_todo_by_id(self, todo_id: int, owner_id: int) -> Todo | None: ...
+    def get_by_id(self, todo_id: int, owner_id: int) -> Todo | None: ...
 
 
 class TodoRepository:
-    def __init__(self, db: Session) -> None:
-        self.db = db
+    def __init__(self, session: Session) -> None:
+        self._session = session
 
-    def create_todo(self, todo_data: dict, owner_id: int) -> Todo:
+    def create(self, todo_data: dict, owner_id: int) -> Todo:
         try:
             new_todo = Todo(**todo_data, owner_id=owner_id)
-            self.db.add(new_todo)
-            self.db.commit()
-            self.db.refresh(new_todo)
+            self._session.add(new_todo)
+            self._session.commit()
+            self._session.refresh(new_todo)
             return new_todo
         except IntegrityError as e:
-            self.db.rollback()
+            self._session.rollback()
             raise DatabaseError("Integrity constraint failed") from e
         except SQLAlchemyError as e:
-            self.db.rollback()
+            self._session.rollback()
             raise DatabaseError("Failed to create todo") from e
 
-    def get_all_todos_for_owner(self, owner_id: int) -> list[Todo]:
+    def get_all_for_owner(self, owner_id: int) -> list[Todo]:
         try:
             stmt = select(Todo).where(Todo.owner_id == owner_id)
-            return list(self.db.execute(stmt).scalars().all())
+            return list(self._session.execute(stmt).scalars().all())
         except SQLAlchemyError as e:
             raise DatabaseError("Failed to retrieve todos") from e
 
-    def get_all_todos(self) -> list[Todo]:
+    def get_all(self) -> list[Todo]:
         try:
-            return list(self.db.execute(select(Todo)).scalars().all())
+            return list(self._session.execute(select(Todo)).scalars().all())
         except SQLAlchemyError as e:
             raise DatabaseError("Failed to retrieve todos") from e
 
-    def get_todo_by_id(self, todo_id: int, owner_id: int) -> Todo | None:
+    def get_by_id(self, todo_id: int, owner_id: int) -> Todo | None:
         try:
             stmt = (
                 select(Todo)
                 .where(Todo.id == todo_id, Todo.owner_id == owner_id)
             )
-            return self.db.execute(stmt).scalar_one_or_none()
+            return self._session.execute(stmt).scalar_one_or_none()
         except SQLAlchemyError as e:
             raise DatabaseError("Failed to retrieve todo") from e
 
-    def update_todo(self, todo_data: dict, todo_id: int, owner_id: int) -> Todo | None:
+    def update(self, todo_data: dict, todo_id: int, owner_id: int) -> Todo | None:
         try:
             stmt = (
                 update(Todo)
@@ -80,54 +80,54 @@ class TodoRepository:
                 .values(**todo_data)
                 .returning(Todo)
             )
-            result = self.db.execute(stmt)
+            result = self._session.execute(stmt)
 
             todo = result.scalar_one_or_none()
             if todo is None:
-                # self.db.rollback()
+                # self.session.rollback()
                 return None
             
-            self.db.commit()
+            self._session.commit()
             return todo
         except SQLAlchemyError as e:
-            self.db.rollback()
+            self._session.rollback()
             raise DatabaseError("Failed to update todo") from e
 
-    def delete_todo(self, todo_id: int) -> bool:
+    def delete(self, todo_id: int) -> bool:
         try:
             stmt = delete(Todo).where(Todo.id == todo_id)
-            result = self.db.execute(stmt)
+            result = self._session.execute(stmt)
 
             deleted = result.rowcount > 0
             if not deleted:
-                # self.db.rollback()
+                # self.session.rollback()
                 return False
             
-            self.db.commit()
+            self._session.commit()
             return True
         except SQLAlchemyError as e:
-            self.db.rollback()
+            self._session.rollback()
             raise DatabaseError("Failed to delete todo") from e
 
-    def delete_todo_for_owner(self, todo_id: int, owner_id: int) -> bool:
+    def delete_for_owner(self, todo_id: int, owner_id: int) -> bool:
         try:
             stmt = delete(Todo).where(Todo.id == todo_id, Todo.owner_id == owner_id)
-            result = self.db.execute(stmt)
+            result = self._session.execute(stmt)
 
             deleted = result.rowcount > 0
             if not deleted:
-                # self.db.rollback()
+                # self.session.rollback()
                 return False
             
-            self.db.commit()
+            self._session.commit()
             return True
         except SQLAlchemyError as e:
-            self.db.rollback()
+            self._session.rollback()
             raise DatabaseError("Failed to delete todo") from e
 
 
-def get_todo_repository(db: SessionDep) -> TodoRepository:
-    return TodoRepository(db)
+def get_todo_repository(session: SessionDep) -> TodoRepository:
+    return TodoRepository(session)
 
 
 TodoReaderRepoDep = Annotated[TodoReader, Depends(get_todo_repository)]

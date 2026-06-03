@@ -19,7 +19,7 @@ async def read_all(
     user: CurrentUserDep,
     todo_reader_repo: TodoReaderRepoDep,
 ) -> list[TodoResponse]:
-    all_todos = todo_reader_repo.get_all_todos_for_owner(user.id)
+    all_todos = todo_reader_repo.get_all_for_owner(user.id)
     return [TodoResponse.model_validate(todo) for todo in all_todos]
 
 
@@ -30,7 +30,7 @@ async def create_todo(
     todo_writer_repo: TodoWriterRepoDep,
 ) -> TodoResponse:
     try:
-        new_todo = todo_writer_repo.create_todo(todo_data.model_dump(), user.id)
+        new_todo = todo_writer_repo.create(todo_data.model_dump(), user.id)
         return TodoResponse.model_validate(new_todo)
     except DatabaseError:
         raise HTTPException(
@@ -46,7 +46,7 @@ async def update_todo(
     user: CurrentUserDep,
     todo_writer_repo: TodoWriterRepoDep,
 ):
-    updated = todo_writer_repo.update_todo(
+    updated = todo_writer_repo.update(
         new_todo_data.model_dump(exclude_unset=True, exclude_none=True),
         todo_id,
         user.id,
@@ -64,7 +64,7 @@ async def delete_todo(
     todo_writer_repo: TodoWriterRepoDep,
     user: CurrentUserDep,
 ):  
-    deleted = todo_writer_repo.delete_todo_for_owner(
+    deleted = todo_writer_repo.delete_for_owner(
         todo_id, 
         user.id,
     )
@@ -81,7 +81,7 @@ async def get_todo(
     todo_reader_repo: TodoReaderRepoDep,
     user: CurrentUserDep,
 ) -> TodoResponse:
-    todo = todo_reader_repo.get_todo_by_id(todo_id, user.id)
+    todo = todo_reader_repo.get_by_id(todo_id, user.id)
     if not todo:
         raise HTTPException(
             status_code=404, 

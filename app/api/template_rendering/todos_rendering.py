@@ -16,7 +16,7 @@ async def render_todo_page(
     if not user:
         return redirect("/auth/login-page", 307)
 
-    todos = todo_repo.get_all_todos(user.id)
+    todos = todo_repo.get_all_for_owner(user.id)
     return templates.TemplateResponse(
         request=request,
         name="todo.html",
@@ -49,7 +49,7 @@ async def render_edit_todo_page(
     if not user:
         return redirect("/auth/login-page", 307)
 
-    todo = todo_repo.get_todo_by_id(todo_id, user.id)
+    todo = todo_repo.get_by_id(todo_id, user.id)
     return templates.TemplateResponse(
         request=request,
         name="edit-todo.html",

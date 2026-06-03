@@ -22,10 +22,10 @@ router = APIRouter()
 async def login_for_access_and_refresh_token(
     response: Response,
     form_data: FormDep,
-    db: SessionDep,
+    session: SessionDep,
     settings: SettingsDep,
 ) -> Token:
-    user = authenticate_user(form_data.username, form_data.password, db)
+    user = authenticate_user(form_data.username, form_data.password, session)
     if not user:
         raise InvalidCredentialsException()
 
@@ -54,7 +54,7 @@ async def login_for_access_and_refresh_token(
 @router.post("/refresh", response_model=Token)
 def refresh_for_new_access_token(
     request: Request,
-    db: SessionDep,
+    session: SessionDep,
     settings: SettingsDep,
 ) -> Token:
     refresh_token = request.cookies.get("refresh_token")
@@ -63,7 +63,7 @@ def refresh_for_new_access_token(
         raise InvalidCredentialsException(detail="Missing refresh token")
 
     username = verify_token(refresh_token, "refresh")
-    user = get_entry(User, db, User.username == username)
+    user = get_entry(User, session, User.username == username)
     if user is None:
         raise InvalidCredentialsException(detail="User not found")
 

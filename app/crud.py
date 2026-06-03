@@ -12,43 +12,43 @@ class DatabaseError(Exception):
 DBModel = TypeVar("DBModel", bound=DeclarativeBase)
 
 
-def create_entry(model_obj: DBModel, db: Session) -> DBModel:
+def create_entry(model_obj: DBModel, session: Session) -> DBModel:
     """
     Creates new entry in database or rolls back if it fails.
     :param model_obj: An SQLAlchemy model object.
-    :param db: The database's session.
+    :param session: The database's session.
     :return: The added model object or None
     """
     try:
-        db.add(model_obj)
-        db.commit()
-        db.refresh(model_obj)
+        session.add(model_obj)
+        session.commit()
+        session.refresh(model_obj)
         return model_obj
     except IntegrityError as e:
-        db.rollback()
+        session.rollback()
         raise DatabaseError("Integrity constraint failed") from e
     except SQLAlchemyError as e:
-        db.rollback()
+        session.rollback()
         raise DatabaseError(f"Failed to create new entry in database: {e}") from e
     
     
 
 
-def get_all_entries(model_cls: DBModel, db: Session, *conditions) -> list[DBModel]:
+def get_all_entries(model_cls: DBModel, session: Session, *conditions) -> list[DBModel]:
     stmt = select(model_cls)
     if conditions:
         stmt = stmt.where(*conditions)
-    return db.execute(stmt).scalars().all()
+    return session.execute(stmt).scalars().all()
 
 
-def get_entry(model_cls: DBModel, db: Session, *conditions, id: int | None = None) -> DBModel | None:
+def get_entry(model_cls: DBModel, session: Session, *conditions, id: int | None = None) -> DBModel | None:
     if id:
-        return db.get(model_cls, id)
-    return db.execute(select(model_cls).where(*conditions)).scalars().first()
+        return session.get(model_cls, id)
+    return session.execute(select(model_cls).where(*conditions)).scalars().first()
 
 
-def update_entry(entry_id: int, model_cls: DBModel, new_data: BaseModel, db: Session) -> DBModel | None:
-    db_entry = db.get(model_cls, entry_id)
+def update_entry(entry_id: int, model_cls: DBModel, new_data: BaseModel, session: Session) -> DBModel | None:
+    db_entry = session.get(model_cls, entry_id)
     if not db_entry:
         return None
     try:
@@ -57,26 +57,26 @@ def update_entry(entry_id: int, model_cls: DBModel, new_data: BaseModel, db: Ses
                 setattr(db_entry, attr, value)
             except Exception as e:
                 print(e)
-        db.commit()
-        db.refresh(db_entry)
+        session.commit()
+        session.refresh(db_entry)
         print("Entry succesfully updated.")
         return db_entry
     except SQLAlchemyError:
-        db.rollback()
+        session.rollback()
         return None
 
 
-def delete_entry(entry_id: int, model_cls: DBModel, db: Session) -> bool:
-    db_entry = db.get(model_cls, entry_id)
+def delete_entry(entry_id: int, model_cls: DBModel, session: Session) -> bool:
+    db_entry = session.get(model_cls, entry_id)
     if not db_entry:
         return False
     try:
-        db.delete(db_entry)
-        db.commit()
+        session.delete(db_entry)
+        session.commit()
         print("Entry succesfully deleted.")
         return True
     except SQLAlchemyError:
-        db.rollback()
+        session.rollback()
         print(f"Error while deleting database entry. Rolling back. \n"
               f"Error: {e}")
         return False
