@@ -9,6 +9,9 @@ from fastapi.templating import Jinja2Templates
 from app.db.session import SessionLocal
 from app.crud import get_entry
 from app.models import User
+from app.repositories.todo_repository import TodoRepository
+from app.services.todo_service import TodoService
+from app.services.protocols import TodoReadService, TodoWriteService, TodoAdminService
 from app.core.security import verify_token, InvalidCredentialsException
 
 
@@ -34,9 +37,6 @@ async def get_current_user(token: TokenDep, session: SessionDep) -> User:
     return user
 
 
-CurrentUserDep = Annotated[User, Depends(get_current_user)]
-
-
 async def get_current_user_from_cookie(request: Request, session: SessionDep) -> User | None:
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
@@ -46,8 +46,26 @@ async def get_current_user_from_cookie(request: Request, session: SessionDep) ->
         username = verify_token(refresh_token, "refresh")
         user = get_entry(User, session, User.username == username)
         return user
+    
     except InvalidCredentialsException:
         return None
 
 
+CurrentUserDep = Annotated[User, Depends(get_current_user)]
 CookieCurrentUserDep = Annotated[User | None, Depends(get_current_user_from_cookie)]
+
+
+def get_todo_repository(session: SessionDep) -> TodoRepository:
+    return TodoRepository(session)
+
+
+TodoRepositoryDep = Annotated[TodoRepository, Depends(get_todo_repository)]
+
+
+def get_todo_service(repository: TodoRepositoryDep, session: SessionDep) -> TodoService:
+    return TodoService(repository, session)
+
+
+TodoReadServiceDep = Annotated[TodoReadService, Depends(get_todo_service)]
+TodoWriteServiceDep = Annotated[TodoWriteService, Depends(get_todo_service)]
+TodoAdminServiceDep = Annotated[TodoAdminService, Depends(get_todo_service)]

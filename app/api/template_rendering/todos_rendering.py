@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from app.api.dependencies import templates, CookieCurrentUserDep
-from app.repositories.todo_repository import TodoReaderRepoDep
+from app.api.dependencies import templates, CookieCurrentUserDep, TodoReadServiceDep
+
 from app.api.template_rendering.utils import redirect
 
 router = APIRouter()
@@ -11,12 +11,12 @@ router = APIRouter()
 async def render_todo_page(
     request: Request,
     user: CookieCurrentUserDep,
-    todo_repo: TodoReaderRepoDep,
+    todo_service: TodoReadServiceDep,
 ):
     if not user:
         return redirect("/auth/login-page", 307)
 
-    todos = todo_repo.get_all_for_owner(user.id)
+    todos = todo_service.get_all_for_owner(user.id)
     return templates.TemplateResponse(
         request=request,
         name="todo.html",
@@ -44,12 +44,12 @@ async def render_edit_todo_page(
     request: Request,
     todo_id: int,
     user: CookieCurrentUserDep,
-    todo_repo: TodoReaderRepoDep,
+    todo_service: TodoReadServiceDep,
 ):
     if not user:
         return redirect("/auth/login-page", 307)
 
-    todo = todo_repo.get_by_id(todo_id, user.id)
+    todo = todo_service.get_by_id(todo_id, user.id)
     return templates.TemplateResponse(
         request=request,
         name="edit-todo.html",

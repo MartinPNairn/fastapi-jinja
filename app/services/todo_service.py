@@ -3,10 +3,11 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app.models.todo import Todo
 from app.repositories.todo_repository import TodoRepository
-
-
-class TodoError(Exception):
-    pass
+from app.exceptions.todo_exceptions import (
+    TodoAlreadyExistsError,
+    TodoNotFoundError,
+    TodoServiceError,
+)
 
 
 class TodoService:
@@ -15,62 +16,72 @@ class TodoService:
         self._session = session
 
     def get_by_id(self, todo_id: int, owner_id: int) -> Todo | None:
-        return self._repository.get_by_id(todo_id, owner_id)
+        try:
+            return self._repository.get_by_id(todo_id, owner_id)
+        except SQLAlchemyError as e:
+            raise TodoServiceError() from e
 
-    def get_all_for_owner(self, owner_id: int) -> list[Todo]: 
-        return self._repository.get_all_for_owner(owner_id)
+    def get_all_for_owner(self, owner_id: int) -> list[Todo]:
+        try:
+            return self._repository.get_all_for_owner(owner_id)
+        except SQLAlchemyError as e:
+            raise TodoServiceError() from e
 
-    def get_all(self) -> list[Todo]: 
-        return self._repository.get_all()
+    def get_all(self) -> list[Todo]:
+        try:
+            return self._repository.get_all()
+        except SQLAlchemyError as e:
+            raise TodoServiceError() from e
 
-    def create(self, todo_data: dict, owner_id: int) -> Todo: 
+    def create(self, todo_data: dict, owner_id: int) -> Todo:
         try:
             new_todo = self._repository.create(todo_data, owner_id)
             self._session.commit()
             return new_todo
-        
+
         except IntegrityError as e:
             self._session.rollback()
-            raise TodoError("Todo with the same title already exists") from e
+            raise TodoAlreadyExistsError() from e
 
         except SQLAlchemyError as e:
             self._session.rollback()
-            raise TodoError("Failed to create todo") from e
-            
-    def update(self, todo_data: dict, todo_id: int, owner_id: int) -> Todo | None: 
+            raise TodoServiceError() from e
+
+    def update(self, todo_data: dict, todo_id: int, owner_id: int) -> Todo | None:
         try:
             updated_todo = self._repository.update(todo_data, todo_id, owner_id)
             if not updated_todo:
-                raise TodoError("Todo not found")
-            
+                raise TodoNotFoundError()
+
             self._session.commit()
             return updated_todo
-        
-        except SQLAlchemyError as e:
-            raise TodoError("Failed to update todo") from e
 
-    def delete_for_owner(self, todo_id: int, owner_id: int) -> bool: 
+        except SQLAlchemyError as e:
+            self._session.rollback()
+            raise TodoServiceError() from e
+
+    def delete_for_owner(self, todo_id: int, owner_id: int) -> bool:
         try:
             success = self._repository.delete_for_owner(todo_id, owner_id)
             if not success:
-                raise TodoError("Todo not found or not owned by user")
-            
+                raise TodoNotFoundError()
+
             self._session.commit()
             return True
-        
+
         except SQLAlchemyError as e:
             self._session.rollback()
-            raise TodoError("Failed to delete todo") from e
+            raise TodoServiceError() from e
 
-    def delete(self, todo_id: int) -> bool: 
+    def delete(self, todo_id: int) -> bool:
         try:
             success = self._repository.delete(todo_id)
             if not success:
-                raise TodoError("Todo not found")
-            
+                raise TodoNotFoundError()
+
             self._session.commit()
             return True
-        
+
         except SQLAlchemyError as e:
             self._session.rollback()
-            raise TodoError("Failed to delete todo") from e
+            raise TodoServiceError() from e
