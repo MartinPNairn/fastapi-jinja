@@ -35,26 +35,12 @@ class TodoRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def create(self, todo_data: dict, owner_id: int) -> Todo:
-        try:
-            new_todo = Todo(**todo_data, owner_id=owner_id)
-            self._session.add(new_todo)
-            self._session.commit()
-            self._session.refresh(new_todo)
-            return new_todo
-        except IntegrityError as e:
-            self._session.rollback()
-            raise DatabaseError("Integrity constraint failed") from e
-        except SQLAlchemyError as e:
-            self._session.rollback()
-            raise DatabaseError("Failed to create todo") from e
-
     def get_all_for_owner(self, owner_id: int) -> list[Todo]:
         try:
             stmt = select(Todo).where(Todo.owner_id == owner_id)
             return list(self._session.execute(stmt).scalars().all())
         except SQLAlchemyError as e:
-            raise DatabaseError("Failed to retrieve todos") from e
+            raise DatabaseError("Failed to retrieve todos for user") from e
 
     def get_all(self) -> list[Todo]:
         try:
@@ -71,6 +57,20 @@ class TodoRepository:
             return self._session.execute(stmt).scalar_one_or_none()
         except SQLAlchemyError as e:
             raise DatabaseError("Failed to retrieve todo") from e
+        
+    def create(self, todo_data: dict, owner_id: int) -> Todo:
+        try:
+            new_todo = Todo(**todo_data, owner_id=owner_id)
+            self._session.add(new_todo)
+            self._session.commit()
+            self._session.refresh(new_todo)
+            return new_todo
+        except IntegrityError as e:
+            self._session.rollback()
+            raise DatabaseError("Integrity constraint failed") from e
+        except SQLAlchemyError as e:
+            self._session.rollback()
+            raise DatabaseError("Failed to create todo") from e
 
     def update(self, todo_data: dict, todo_id: int, owner_id: int) -> Todo | None:
         try:
