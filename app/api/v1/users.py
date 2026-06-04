@@ -18,13 +18,13 @@ router = APIRouter()
 @router.post(
     "/create", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
-async def create_user(user_create_request: UserCreateRequest, db: SessionDep):
+async def create_user(user_create_request: UserCreateRequest, session: SessionDep):
     user_data = user_create_request.model_dump(exclude={"password"})
     new_user = User(
         **user_data, hashed_password=create_password_hash(user_create_request.password)
     )
     try:
-        user_created = create_entry(new_user, db)
+        user_created = create_entry(new_user, session)
     except DatabaseError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return user_created
@@ -39,7 +39,7 @@ async def get_user(user: CurrentUserDep):
 
 @router.put("/update-password", status_code=status.HTTP_204_NO_CONTENT)
 async def update_password(
-    user: CurrentUserDep, db: SessionDep, new_data: UpdatePasswordRequest
+    user: CurrentUserDep, session: SessionDep, new_data: UpdatePasswordRequest
 ):
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -47,13 +47,13 @@ async def update_password(
         raise HTTPException(status_code=401, detail="Wrong current password")
     new_hash = create_password_hash(new_data.new_password)
     new_hashed_password = HashedPassword(hashed_password=new_hash)
-    update_entry(user.id, User, new_hashed_password, db)
+    update_entry(user.id, User, new_hashed_password, session)
 
 
 @router.put("/update-phone", status_code=status.HTTP_204_NO_CONTENT)
 async def update_phone(
-    user: CurrentUserDep, db: SessionDep, new_data: UpdatePhoneRequest
+    user: CurrentUserDep, session: SessionDep, new_data: UpdatePhoneRequest
 ):
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    update_entry(user.id, User, new_data, db)
+    update_entry(user.id, User, new_data, session)

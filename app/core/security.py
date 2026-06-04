@@ -26,8 +26,8 @@ def create_password_hash(raw_password: str) -> str:
     return password_hasher.hash(raw_password)
 
 
-def authenticate_user(username: str, password: str, db: Session) -> bool | User:
-    user = get_entry(User, db, User.username == username.lower())
+def authenticate_user(username: str, password: str, session: Session) -> bool | User:
+    user = get_entry(User, session, User.username == username.lower())
     if user is None:
         return False
     if not verify_password_hash(password, user.hashed_password):

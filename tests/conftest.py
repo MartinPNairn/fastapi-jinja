@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from app.models import User, Todo
 from app.db.base import Base
 from app.main import app
-from app.api.dependencies import get_db, get_current_user
+from app.api.dependencies import get_session, get_current_user
 from app.core.security import create_password_hash
 from app.core.config import Settings, get_settings
 
@@ -109,13 +109,13 @@ def client(db):
         )
 
     def _make_client(user: User | None = None):
-        def override_get_db():
+        def override_get_session():
             yield db
 
         async def override_get_current_user():
             return user
 
-        app.dependency_overrides[get_db] = override_get_db
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[get_current_user] = override_get_current_user
         app.dependency_overrides[get_settings] = get_test_settings
         return TestClient(app)

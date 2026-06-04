@@ -7,28 +7,28 @@ T = TypeVar("T", bound=DeclarativeBase)
 
 
 def get_fresh_entry_by_primary_key(
-    db: Session,
+    session: Session,
     model: type[T],
     primary_key_value: int,
 ) -> T | None:
-    db.expire_all()
-    return db.get(model, primary_key_value)
+    session.expire_all()
+    return session.get(model, primary_key_value)
 
 
 def get_fresh_entry_with_conditions(
-    db: Session,
+    session: Session,
     model: type[T],
     *conditions,
 ) -> T | None:
-    db.expire_all()
+    session.expire_all()
     stmt = select(model).where(*conditions)
-    return db.execute(stmt).scalar_one_or_none()
+    return session.execute(stmt).scalar_one_or_none()
 
 
 def entry_is_in_db(
-    db: Session,
+    session: Session,
     model: type[T],
     primary_key_value: int,
 ) -> bool:
-    db.expire_all()
-    return db.get(model, primary_key_value) is not None
+    session.expire_all()
+    return session.get(model, primary_key_value) is not None
