@@ -19,8 +19,8 @@ async def read_all(
     todo_service: TodoReadServiceDep,
 ) -> list[TodoResponse]:
     try:
-        all_todos = todo_service.get_all_for_owner(user.id)
-        return [TodoResponse.model_validate(todo) for todo in all_todos]
+        todos = todo_service.get_all_for_owner(user.id)
+        return [TodoResponse.model_validate(todo) for todo in todos]
 
     except TodoServiceError as e:
         raise HTTPException(
@@ -41,10 +41,15 @@ async def create_todo(
 
     except TodoAlreadyExistsError as e:
         raise HTTPException(
-            status_code=500,
+            status_code=409,
             detail="Error while creating new To-Do.",
         ) from e
-
+    
+    except TodoServiceError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Database error.",
+        ) from e
 
 @router.put("/update/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_todo(
@@ -104,10 +109,18 @@ async def get_todo(
     todo_service: TodoReadServiceDep,
     user: CurrentUserDep,
 ) -> TodoResponse:
-    todo = todo_service.get_by_id(todo_id, user.id)
-    if not todo:
+    try:
+        todo = todo_service.get_by_id(todo_id, user.id)
+        return TodoResponse.model_validate(todo)
+    
+    except TodoNotFoundError as e:
         raise HTTPException(
             status_code=404,
             detail="To-Do not found.",
-        )
-    return TodoResponse.model_validate(todo)
+        ) from e
+
+    except TodoServiceError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Database error.",
+        ) from e
