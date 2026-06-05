@@ -15,21 +15,28 @@ class TodoService:
         self._repository = repository
         self._session = session
 
-    def get_by_id(self, todo_id: int, owner_id: int) -> Todo | None:
+    def get_by_id(self, todo_id: int, owner_id: int) -> Todo:
         try:
-            return self._repository.get_by_id(todo_id, owner_id)
+            todo = self._repository.get_by_id(todo_id, owner_id)
+            if not todo:
+                raise TodoNotFoundError()
+            
+            return todo
+        
         except SQLAlchemyError as e:
             raise TodoServiceError() from e
 
     def get_all_for_owner(self, owner_id: int) -> list[Todo]:
         try:
             return self._repository.get_all_for_owner(owner_id)
+        
         except SQLAlchemyError as e:
             raise TodoServiceError() from e
 
     def get_all(self) -> list[Todo]:
         try:
             return self._repository.get_all()
+        
         except SQLAlchemyError as e:
             raise TodoServiceError() from e
 
