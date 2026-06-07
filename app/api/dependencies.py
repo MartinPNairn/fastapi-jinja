@@ -11,7 +11,7 @@ from app.crud import get_entry
 from app.models import User
 from app.repositories.todo_repository import TodoRepository
 from app.services.todo_service import TodoService
-from app.services.protocols import TodoReadService, TodoWriteService, TodoAdminService
+from app.services.todo_protocols import TodoReadService, TodoWriteService, TodoAdminService
 from app.core.security import verify_token, InvalidCredentialsException
 
 
