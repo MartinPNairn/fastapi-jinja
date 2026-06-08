@@ -38,8 +38,11 @@ class TodoService:
 
         except SQLAlchemyError as e:
             raise UserServiceError() from e
+        
+    def authenticate(self, user: User) -> bool:
+        ... # TODO: ADD AUTHENTICATION LOGIC HERE
 
-    def create(
+    def create_account(
         self,
         user_data: UserCreateRequest,
     ) -> User:
@@ -62,30 +65,30 @@ class TodoService:
         self,
         user: User,
         pass_data: ChangePasswordRequest,
-    ) -> User:
+    ) -> None:
         # TODO: ADD PASSWORD VERIFICATION LOGIC
         data = pass_data.model_dump(
             exclude_unset=True,
             exclude_none=True,
         )
-        return self._update(user, data)
+        self._update(user, data)
 
     def change_phone(
         self,
         user: User,
         new_data: ChangePhoneRequest,
-    ) -> User:
+    ) -> None:
         data = new_data.model_dump(
             exclude_unset=True,
             exclude_none=True,
         )
-        return self._update(user, data)
+        self._update(user, data)
         
     def _update(
         self, 
         user: User, 
         new_data: dict,
-    ) -> User:
+    ) -> None:
         try:
             updated_user = self._repository.update(
                 user.id,
@@ -94,7 +97,6 @@ class TodoService:
             if not updated_user:
                 raise UserNotFoundError()
             self._session.commit()
-            return updated_user
 
         except SQLAlchemyError as e:
             self._session.rollback()
