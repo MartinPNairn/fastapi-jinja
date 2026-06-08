@@ -61,40 +61,35 @@ class TodoService:
     def change_password(
         self,
         user: User,
-        new_data: ChangePasswordRequest,
-    ) -> User | None:
-        try:
-            # TODO: ADD PASSWORD VERIFICATION
-            data = new_data.model_dump(
-                exclude_unset=True,
-                exclude_none=True,
-            )
-            updated_user = self._repository.update(
-                user.id,
-                data,
-            )
-            if not updated_user:
-                raise UserNotFoundError()
-            self._session.commit()
-            return updated_user
-
-        except SQLAlchemyError as e:
-            self._session.rollback()
-            raise UserServiceError() from e
+        pass_data: ChangePasswordRequest,
+    ) -> User:
+        # TODO: ADD PASSWORD VERIFICATION LOGIC
+        data = pass_data.model_dump(
+            exclude_unset=True,
+            exclude_none=True,
+        )
+        return self._update(user, data)
 
     def change_phone(
         self,
         user: User,
         new_data: ChangePhoneRequest,
-    ) -> User | None:
+    ) -> User:
+        data = new_data.model_dump(
+            exclude_unset=True,
+            exclude_none=True,
+        )
+        return self._update(user, data)
+        
+    def _update(
+        self, 
+        user: User, 
+        new_data: dict,
+    ) -> User:
         try:
-            data = new_data.model_dump(
-                exclude_unset=True,
-                exclude_none=True,
-            )
             updated_user = self._repository.update(
                 user.id,
-                data,
+                new_data,
             )
             if not updated_user:
                 raise UserNotFoundError()
