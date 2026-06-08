@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from app.db.session import SessionLocal
 from app.crud import get_entry
 from app.models import User
-from app.repositories.todo_repository import TodoRepository
+from app.repositories.todo_repository import SQLAlchemyTodoRepository
 from app.services.todo_service import TodoService
 from app.services.todo_protocols import TodoReadService, TodoWriteService, TodoAdminService
 from app.core.security import verify_token, InvalidCredentialsException
@@ -55,11 +55,11 @@ CurrentUserDep = Annotated[User, Depends(get_current_user)]
 CookieCurrentUserDep = Annotated[User | None, Depends(get_current_user_from_cookie)]
 
 
-def get_todo_repository(session: SessionDep) -> TodoRepository:
-    return TodoRepository(session)
+def get_todo_repository(session: SessionDep) -> SQLAlchemyTodoRepository:
+    return SQLAlchemyTodoRepository(session)
 
 
-TodoRepositoryDep = Annotated[TodoRepository, Depends(get_todo_repository)]
+TodoRepositoryDep = Annotated[SQLAlchemyTodoRepository, Depends(get_todo_repository)]
 
 
 def get_todo_service(repository: TodoRepositoryDep, session: SessionDep) -> TodoService:

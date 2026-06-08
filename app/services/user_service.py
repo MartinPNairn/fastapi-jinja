@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.models.user import User
 from app.schemas.users import ChangePasswordRequest, ChangePhoneRequest
 from app.schemas.auth import UserCreateRequest
-from app.repositories.user_repository import UserRepository
+from app.repositories.user_protocols import UserRepositoryProtocol
 from app.exceptions.user_exceptions import (
     UserAlreadyExistsError,
     UserNotFoundError,
@@ -12,8 +12,8 @@ from app.exceptions.user_exceptions import (
 )
 
 
-class TodoService:
-    def __init__(self, repository: UserRepository, session: Session) -> None:
+class UserService:
+    def __init__(self, repository: UserRepositoryProtocol, session: Session) -> None:
         self._repository = repository
         self._session = session
 

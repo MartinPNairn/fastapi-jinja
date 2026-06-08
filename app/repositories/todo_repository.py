@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models import Todo
 
 
-class TodoRepository:
+class SQLAlchemyTodoRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 

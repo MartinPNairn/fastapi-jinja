@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.models.todo import Todo
 from app.models.user import User
 from app.schemas.todo import TodoRequest
-from app.repositories.todo_repository import TodoRepository
+from app.repositories.todo_protocols import TodoRepositoryProtocol
 from app.exceptions.todo_exceptions import (
     TodoAlreadyExistsError,
     TodoNotFoundError,
@@ -13,7 +13,7 @@ from app.exceptions.todo_exceptions import (
 
 
 class TodoService:
-    def __init__(self, repository: TodoRepository, session: Session) -> None:
+    def __init__(self, repository: TodoRepositoryProtocol, session: Session) -> None:
         self._repository = repository
         self._session = session
 
