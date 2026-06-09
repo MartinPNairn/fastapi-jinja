@@ -2,7 +2,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.dependencies import get_current_user
-from app.core.security import create_access_token
+from app.core.security.token_manager import create_access_token
 
 
 @pytest.mark.asyncio

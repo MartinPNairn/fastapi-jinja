@@ -12,7 +12,7 @@ from app.models import User
 from app.repositories.todo_repository import SQLAlchemyTodoRepository
 from app.services.todo_service import TodoService
 from app.services.todo_protocols import TodoReadService, TodoWriteService, TodoAdminService
-from app.core.security import verify_token, InvalidCredentialsException
+from app.core.security.token_manager import verify_token, InvalidCredentialsException
 
 
 templates = Jinja2Templates(directory="app/frontend/templates")

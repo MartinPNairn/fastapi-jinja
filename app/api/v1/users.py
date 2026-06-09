@@ -9,7 +9,7 @@ from app.schemas import (
     UserCreateRequest,
     UserResponse,
 )
-from app.core.security import verify_password_hash, create_password_hash
+from app.core.security.password_hasher import verify_password_hash, create_password_hash
 
 router = APIRouter()
 

@@ -1,7 +1,7 @@
 from app.crud import get_entry
 from app.models import User
 from app.schemas import UserResponse
-from app.core.security import verify_password_hash
+from app.core.security.password_hasher import verify_password_hash
 
 
 def test_create_user(client, db):

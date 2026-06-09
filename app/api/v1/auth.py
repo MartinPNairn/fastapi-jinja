@@ -5,8 +5,8 @@ from app.schemas import Token
 from app.crud import get_entry
 from app.models import User
 from app.core.config import SettingsDep
-from app.core.security import (
-    authenticate_user,
+from app.core.security.password_hasher import authenticate_user
+from app.core.security.token_manager import (
     create_access_token,
     create_refresh_token,
     verify_token,

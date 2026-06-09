@@ -7,7 +7,7 @@ from app.models import User, Todo
 from app.db.base import Base
 from app.main import app
 from app.api.dependencies import get_session, get_current_user
-from app.core.security import create_password_hash
+from app.core.security.password_hasher import create_password_hash
 from app.core.config import Settings, get_settings
 
 
