@@ -1,10 +1,12 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.models.user import User
 from app.schemas.users import ChangePasswordRequest, ChangePhoneRequest
 from app.schemas.auth import UserCreateRequest
 from app.repositories.user_protocols import UserRepositoryProtocol
+from app.core.security.security_protocols import PasswordHasherProtocol
 from app.exceptions.user_exceptions import (
     UserAlreadyExistsError,
     UserNotFoundError,
@@ -13,8 +15,14 @@ from app.exceptions.user_exceptions import (
 
 
 class UserService:
-    def __init__(self, repository: UserRepositoryProtocol, session: Session) -> None:
+    def __init__(
+        self,
+        repository: UserRepositoryProtocol,
+        password_hasher: PasswordHasherProtocol,
+        session: Session,
+    ) -> None:
         self._repository = repository
+        self._hasher = password_hasher
         self._session = session
 
     def get_by_id(
@@ -22,7 +30,7 @@ class UserService:
         user_id: int,
     ) -> User:
         try:
-            user = self._repository.get_by_id(user_id)
+            user = self._repository.get_by_conditions(id=user_id)
             if not user:
                 raise UserNotFoundError()
             return user
@@ -38,9 +46,15 @@ class UserService:
 
         except SQLAlchemyError as e:
             raise UserServiceError() from e
-        
-    def authenticate(self, user: User) -> bool:
-        ... # TODO: ADD AUTHENTICATION LOGIC HERE
+
+    def authenticate(
+        self, 
+        form_data: OAuth2PasswordRequestForm,
+    ) -> bool:
+        user = self._repository.
+        if user is None:
+            raise UserNotFoundError()
+        return self._hasher.verify_hash(form_data.)
 
     def create_account(
         self,
@@ -83,10 +97,10 @@ class UserService:
             exclude_none=True,
         )
         self._update(user, data)
-        
+
     def _update(
-        self, 
-        user: User, 
+        self,
+        user: User,
         new_data: dict,
     ) -> None:
         try:

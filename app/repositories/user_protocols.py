@@ -1,12 +1,13 @@
-from typing import Protocol
+from typing import Protocol, Any
+
 from app.models import User
 
 
 class UserRepositoryProtocol(Protocol):
     def get_all(self) -> list[User]: ...
 
-    def get_by_id(self, user_id: int) -> User | None: ...
- 
+    def get_by_conditions(self, **conditions: Any) -> User | None: ...
+
     def create(self, user_data: dict) -> User: ...
 
     def update(self, user_id: int, user_data: dict) -> User | None: ...
