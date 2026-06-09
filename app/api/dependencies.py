@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 from app.db.session import SessionLocal
 from app.crud import get_entry
 from app.models import User
+from app.schemas.auth import LoginCredentials
 from app.repositories.todo_repository import SQLAlchemyTodoRepository
 from app.services.todo_service import TodoService
 from app.services.todo_protocols import TodoReadService, TodoWriteService, TodoAdminService
@@ -24,9 +25,14 @@ def get_session():
         yield session
 
 
+def get_login_credentials(request_form: Annotated[OAuth2PasswordRequestForm, Depends()]) -> LoginCredentials:
+    return LoginCredentials(username=request_form.username, password=request_form.password)
+
+
 SessionDep = Annotated[Session, Depends(get_session)]
 TokenDep = Annotated[str, Depends(oauth2_scheme)]
-FormDep = Annotated[OAuth2PasswordRequestForm, Depends()]
+FormDep = Annotated[LoginCredentials, Depends(get_login_credentials)]
+# FormDep = Annotated[OAuth2PasswordRequestForm, Depends()]
 
 
 async def get_current_user(token: TokenDep, session: SessionDep) -> User:

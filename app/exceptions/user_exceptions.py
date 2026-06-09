@@ -12,3 +12,7 @@ class UserAlreadyExistsError(UserError):
 
 class UserServiceError(UserError):
     pass
+
+
+class InvalidCredentialsError(UserError):
+    pass

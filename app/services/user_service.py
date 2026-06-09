@@ -1,20 +1,21 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from fastapi.security import OAuth2PasswordRequestForm
 
 from app.models.user import User
 from app.schemas.users import ChangePasswordRequest, ChangePhoneRequest
-from app.schemas.auth import UserCreateRequest
+from app.schemas.auth import UserCreateRequest, LoginCredentials
 from app.repositories.user_protocols import UserRepositoryProtocol
+from app.services.user_protocols import UserServiceProtocol
 from app.core.security.security_protocols import PasswordHasherProtocol
 from app.exceptions.user_exceptions import (
     UserAlreadyExistsError,
     UserNotFoundError,
     UserServiceError,
+    InvalidCredentialsError,
 )
 
 
-class UserService:
+class UserService(UserServiceProtocol):
     def __init__(
         self,
         repository: UserRepositoryProtocol,
@@ -49,12 +50,18 @@ class UserService:
 
     def authenticate(
         self, 
-        form_data: OAuth2PasswordRequestForm,
-    ) -> bool:
-        user = self._repository.
-        if user is None:
-            raise UserNotFoundError()
-        return self._hasher.verify_hash(form_data.)
+        form_data: LoginCredentials,
+    ) -> User:
+        try:
+            user = self._repository.get_by_conditions(username=form_data.username)
+            if user is None:
+                raise UserNotFoundError()
+            if not self._hasher.verify_hash(form_data.password, user.hashed_password):
+                raise InvalidCredentialsError()
+            return user
+        
+        except SQLAlchemyError as e:
+            raise UserServiceError() from e
 
     def create_account(
         self,
@@ -90,9 +97,9 @@ class UserService:
     def change_phone(
         self,
         user: User,
-        new_data: ChangePhoneRequest,
+        phone_data: ChangePhoneRequest,
     ) -> None:
-        data = new_data.model_dump(
+        data = phone_data.model_dump(
             exclude_unset=True,
             exclude_none=True,
         )
