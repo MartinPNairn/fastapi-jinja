@@ -1,10 +1,10 @@
 from fastapi import HTTPException
 
 
-class InvalidCredentialsException(HTTPException):
-    def __init__(self, detail: str = "Could not validate credentials!") -> None:
+class HTTPValidationException(HTTPException):
+    def __init__(self, status_code: int = 400, detail: str = "Validation error.") -> None:
         super().__init__(
-            status_code=401,
+            status_code=status_code,
             detail=detail,
             headers={"WWW-Authenticate": "Bearer"},
         )

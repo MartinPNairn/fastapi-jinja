@@ -3,7 +3,7 @@ from datetime import timedelta, datetime, UTC
 import jwt
 
 from app.core.config import get_settings
-from app.exceptions.security_exceptions import InvalidCredentialsException
+from app.exceptions.security_exceptions import HTTPValidationException
 
 
 def create_access_token(data: dict, expiration_time_minutes: float = 15) -> str:
@@ -49,13 +49,13 @@ def verify_token(token: str, expected_type: str) -> str:
         token_type = payload.get("token_type")
 
         if not username:
-            raise InvalidCredentialsException()
+            raise HTTPValidationException(status_code=401)
         if token_type != expected_type:
-            raise InvalidCredentialsException(detail="Invalid token type")
+            raise HTTPValidationException(status_code=401, detail="Invalid token type")
         return username
 
     except jwt.ExpiredSignatureError:
-        raise InvalidCredentialsException(detail="Token has expired")
+        raise HTTPValidationException(status_code=401, detail="Token has expired")
 
     except jwt.InvalidTokenError:
-        raise InvalidCredentialsException(detail="Invalid Token")
+        raise HTTPValidationException(status_code=401, detail="Invalid Token")

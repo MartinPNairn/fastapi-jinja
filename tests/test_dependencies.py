@@ -1,8 +1,8 @@
 import pytest
-from fastapi import HTTPException
 
 from app.api.dependencies import get_current_user
 from app.core.security.token_manager import create_access_token
+from app.exceptions.security_exceptions import HTTPValidationException
 
 
 @pytest.mark.asyncio
@@ -19,8 +19,8 @@ async def test_get_current_user_missing_payload(test_user, db):
     payload = {}
     token = create_access_token(data=payload)
 
-    with pytest.raises(HTTPException) as exception_info:
+    with pytest.raises(HTTPValidationException) as exception_info:
         await get_current_user(token, db)
 
     assert exception_info.value.status_code == 401
-    assert exception_info.value.detail == "Could not validate credentials!"
+    assert "Validation error" in exception_info.value.detail

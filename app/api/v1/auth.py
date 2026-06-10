@@ -1,16 +1,21 @@
-from fastapi import APIRouter, Response, Request
+from fastapi import APIRouter, Response, Request, HTTPException
 
-from app.api.dependencies import SessionDep, FormDep
+from app.api.dependencies import SessionDep, FormDep, UserReadServiceDep
 from app.schemas import Token
 from app.crud import get_entry
 from app.models import User
 from app.core.config import SettingsDep
+from app.exceptions.user_exceptions import (
+    UserNotFoundError,
+    UserServiceError,
+    InvalidCredentialsError,
+)
+from app.exceptions.security_exceptions import HTTPValidationException
 from app.core.security.password_hasher import authenticate_user
 from app.core.security.token_manager import (
     create_access_token,
     create_refresh_token,
     verify_token,
-    InvalidCredentialsException,
 )
 
 
@@ -21,34 +26,51 @@ router = APIRouter()
 @router.post("/login", response_model=Token)
 async def login_for_access_and_refresh_token(
     response: Response,
-    form_data: FormDep,
-    session: SessionDep,
+    credentials_data: FormDep,
     settings: SettingsDep,
+    user_service: UserReadServiceDep,
 ) -> Token:
-    user = authenticate_user(form_data.username, form_data.password, session)
-    if not user:
-        raise InvalidCredentialsException()
+    try:
+        user = user_service.authenticate(credentials_data)
 
-    access_token = create_access_token(
-        data={"sub": user.username, "id": user.id, "role": user.role},
-        expiration_time_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-    )
+        access_token = create_access_token(
+            data={"sub": user.username, "id": user.id, "role": user.role},
+            expiration_time_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+        )
 
-    refresh_token = create_refresh_token(
-        data={"sub": user.username},
-        expiration_time_days=settings.REFRESH_TOKEN_EXPIRE_DAYS,
-    )
+        refresh_token = create_refresh_token(
+            data={"sub": user.username},
+            expiration_time_days=settings.REFRESH_TOKEN_EXPIRE_DAYS,
+        )
 
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=settings.ENVIRONMENT != "development",
-        path="/",
-        max_age=int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
-    )
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=settings.ENVIRONMENT != "development",
+            path="/",
+            max_age=int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
+        )
 
-    return Token(access_token=access_token, token_type="bearer")
+        return Token(access_token=access_token, token_type="bearer")
+
+    except UserNotFoundError as e:
+        raise HTTPValidationException(
+            status_code=404,
+            detail="User not found.",
+        ) from e
+
+    except InvalidCredentialsError as e:
+        raise HTTPValidationException(
+            status_code=401,
+            detail="Invalid credentials.",
+        ) from e
+
+    except UserServiceError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Database error.",
+        ) from e
 
 
 @router.post("/refresh", response_model=Token)
@@ -60,12 +82,12 @@ def refresh_for_new_access_token(
     refresh_token = request.cookies.get("refresh_token")
 
     if refresh_token is None:
-        raise InvalidCredentialsException(detail="Missing refresh token")
+        raise HTTPValidationException(detail="Missing refresh token")
 
     username = verify_token(refresh_token, "refresh")
     user = get_entry(User, session, User.username == username)
     if user is None:
-        raise InvalidCredentialsException(detail="User not found")
+        raise HTTPValidationException(status_code=401, detail="User not found")
 
     new_access_token = create_access_token(
         data={"sub": user.username, "id": user.id, "role": user.role},
@@ -74,7 +96,6 @@ def refresh_for_new_access_token(
     return Token(access_token=new_access_token, token_type="bearer")
 
 
-# TODO: define /auth/logout endpoint
 @router.post("/logout")
 def logout(response: Response):
     response.delete_cookie(key="access_token", path="/")
