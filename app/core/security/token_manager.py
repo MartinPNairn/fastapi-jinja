@@ -1,42 +1,9 @@
 from datetime import timedelta, datetime, UTC
 
-from sqlalchemy.orm import Session
-from fastapi import HTTPException
-from pwdlib import PasswordHash
 import jwt
 
-from app.crud import get_entry
-from app.models import User
 from app.core.config import get_settings
-
-
-password_hasher = PasswordHash.recommended()
-
-
-class InvalidCredentialsException(HTTPException):
-    def __init__(self, detail: str = "Could not validate credentials!") -> None:
-        super().__init__(
-            status_code=401,
-            detail=detail,
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-
-def create_password_hash(raw_password: str) -> str:
-    return password_hasher.hash(raw_password)
-
-
-def authenticate_user(username: str, password: str, session: Session) -> bool | User:
-    user = get_entry(User, session, User.username == username.lower())
-    if user is None:
-        return False
-    if not verify_password_hash(password, user.hashed_password):
-        return False
-    return user
-
-
-def verify_password_hash(raw_password: str, hashed_password: str) -> bool:
-    return password_hasher.verify(raw_password, hashed_password)
+from app.exceptions.security_exceptions import HTTPValidationException
 
 
 def create_access_token(data: dict, expiration_time_minutes: float = 15) -> str:
@@ -82,13 +49,13 @@ def verify_token(token: str, expected_type: str) -> str:
         token_type = payload.get("token_type")
 
         if not username:
-            raise InvalidCredentialsException()
+            raise HTTPValidationException(status_code=401)
         if token_type != expected_type:
-            raise InvalidCredentialsException(detail="Invalid token type")
+            raise HTTPValidationException(status_code=401, detail="Invalid token type")
         return username
 
     except jwt.ExpiredSignatureError:
-        raise InvalidCredentialsException(detail="Token has expired")
+        raise HTTPValidationException(status_code=401, detail="Token has expired")
 
     except jwt.InvalidTokenError:
-        raise InvalidCredentialsException(detail="Invalid Token")
+        raise HTTPValidationException(status_code=401, detail="Invalid Token")

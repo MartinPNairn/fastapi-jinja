@@ -6,9 +6,10 @@ from sqlalchemy.orm import sessionmaker
 from app.models import User, Todo
 from app.db.base import Base
 from app.main import app
-from app.api.dependencies import get_session, get_current_user
-from app.core.security import create_password_hash
+from app.api.dependencies import get_session, get_current_user, get_user_service
+from app.core.security.password_hasher import create_password_hash
 from app.core.config import Settings, get_settings
+from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFoundError
 
 
 SQLALCHEMY_TEST_URL = "sqlite:///./test_db.db"
@@ -137,13 +138,21 @@ def mock_security(monkeypatch):
         phone_number = 11223344
         role = "user"
 
-    def mock_authenticate_user(username: str, password: str, db):
-        if username and password == "secret":
-            return MockUser()
-        return False
+    # def mock_authenticate_user(username: str, password: str, db):
+    #     if username == "juanperez" and password == "secret":
+    #         return MockUser()
+    #     return False
+
+    class MockUserService:
+        def authenticate(self, credentials_data):
+            if credentials_data.username != "juanperez":
+                raise UserNotFoundError()
+            if credentials_data.username == "juanperez" and credentials_data.password == "secret":
+                return MockUser()
+            raise InvalidCredentialsError()
 
     def mock_create_access_token(data: dict, expiration_time_minutes):
         return "jwtpayload.jwtheader.jwtsignature"
 
-    monkeypatch.setattr("app.api.v1.auth.authenticate_user", mock_authenticate_user)
+    app.dependency_overrides[get_user_service] = lambda: MockUserService()
     monkeypatch.setattr("app.api.v1.auth.create_access_token", mock_create_access_token)

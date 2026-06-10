@@ -1,6 +1,8 @@
 import jwt
 
-from app.core.security import authenticate_user, create_access_token
+from app.core.security.password_hasher import authenticate_user
+from app.core.security.token_manager import create_access_token
+
 from app.core.config import get_settings
 
 

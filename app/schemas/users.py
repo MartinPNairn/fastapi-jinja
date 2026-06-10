@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class UpdatePasswordRequest(BaseModel):
+class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
 
@@ -10,5 +10,5 @@ class HashedPassword(BaseModel):
     hashed_password: str
 
 
-class UpdatePhoneRequest(BaseModel):
+class ChangePhoneRequest(BaseModel):
     phone_number: int

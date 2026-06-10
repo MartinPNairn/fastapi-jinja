@@ -3,13 +3,13 @@ from app.models import User
 from app.api.dependencies import SessionDep, CurrentUserDep
 from app.crud import update_entry, create_entry, DatabaseError
 from app.schemas import (
-    UpdatePasswordRequest,
+    ChangePasswordRequest,
     HashedPassword,
-    UpdatePhoneRequest,
+    ChangePhoneRequest,
     UserCreateRequest,
     UserResponse,
 )
-from app.core.security import verify_password_hash, create_password_hash
+from app.core.security.password_hasher import verify_password_hash, create_password_hash
 
 router = APIRouter()
 
@@ -39,7 +39,7 @@ async def get_user(user: CurrentUserDep):
 
 @router.put("/update-password", status_code=status.HTTP_204_NO_CONTENT)
 async def update_password(
-    user: CurrentUserDep, session: SessionDep, new_data: UpdatePasswordRequest
+    user: CurrentUserDep, session: SessionDep, new_data: ChangePasswordRequest
 ):
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -52,7 +52,7 @@ async def update_password(
 
 @router.put("/update-phone", status_code=status.HTTP_204_NO_CONTENT)
 async def update_phone(
-    user: CurrentUserDep, session: SessionDep, new_data: UpdatePhoneRequest
+    user: CurrentUserDep, session: SessionDep, new_data: ChangePhoneRequest
 ):
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
