@@ -49,7 +49,7 @@ class UserService(UserServiceProtocol):
             raise UserServiceError() from e
 
     def authenticate(
-        self, 
+        self,
         form_data: LoginCredentials,
     ) -> User:
         try:
@@ -59,7 +59,7 @@ class UserService(UserServiceProtocol):
             if not self._hasher.verify_hash(form_data.password, user.hashed_password):
                 raise InvalidCredentialsError()
             return user
-        
+
         except SQLAlchemyError as e:
             raise UserServiceError() from e
 
@@ -71,9 +71,7 @@ class UserService(UserServiceProtocol):
             data = user_data.model_dump(exclude={"password"})
             hashed_pass = self._hasher.generate_hash(user_data.password)
             data.update(hashed_password=hashed_pass.hashed_password)
-            new_user = self._repository.create(
-                data,
-            )
+            new_user = self._repository.create(data)
             self._session.commit()
             return new_user
 
@@ -90,24 +88,18 @@ class UserService(UserServiceProtocol):
         user: User,
         pass_data: ChangePasswordRequest,
     ) -> None:
-        # TODO: ADD PASSWORD VERIFICATION LOGIC
+        if not self._hasher.verify_hash(pass_data.old_password, user.hashed_password):
+            raise InvalidCredentialsError()
 
-        data = pass_data.model_dump(
-            exclude_unset=True,
-            exclude_none=True,
-        )
-        self._update(user, data)
+        new_hash = self._hasher.generate_hash(pass_data.new_password)
+        self._update(user, {"hashed_password": new_hash.hashed_password})
 
     def change_phone(
         self,
         user: User,
         phone_data: ChangePhoneRequest,
     ) -> None:
-        data = phone_data.model_dump(
-            exclude_unset=True,
-            exclude_none=True,
-        )
-        self._update(user, data)
+        self._update(user, {"phone_number": phone_data.phone_number})
 
     def _update(
         self,
