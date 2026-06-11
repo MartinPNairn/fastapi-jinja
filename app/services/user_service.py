@@ -26,13 +26,34 @@ class UserService(UserServiceProtocol):
         self._hasher = password_hasher
         self._session = session
 
+    def authenticate(
+        self,
+        form_data: LoginCredentials,
+    ) -> User:
+        user = self.get_by_username(username=form_data.username)
+        if not self._hasher.verify_hash(form_data.password, user.hashed_password):
+            raise InvalidCredentialsError()
+        return user
+
+    def get_by_username(
+        self,
+        username: str,
+    ) -> User:
+        return self._get_user(username=username)
+
     def get_by_id(
         self,
         user_id: int,
     ) -> User:
+        return self._get_user(id=user_id)
+
+    def _get_user(
+        self,
+        **condition,
+    ) -> User:
         try:
-            user = self._repository.get_by_conditions(id=user_id)
-            if not user:
+            user = self._repository.get_by_conditions(**condition)
+            if user is None:
                 raise UserNotFoundError()
             return user
 
@@ -48,22 +69,7 @@ class UserService(UserServiceProtocol):
         except SQLAlchemyError as e:
             raise UserServiceError() from e
 
-    def authenticate(
-        self,
-        form_data: LoginCredentials,
-    ) -> User:
-        try:
-            user = self._repository.get_by_conditions(username=form_data.username)
-            if user is None:
-                raise UserNotFoundError()
-            if not self._hasher.verify_hash(form_data.password, user.hashed_password):
-                raise InvalidCredentialsError()
-            return user
-
-        except SQLAlchemyError as e:
-            raise UserServiceError() from e
-
-    def create_account(
+    def register(
         self,
         user_data: UserCreateRequest,
     ) -> User:
