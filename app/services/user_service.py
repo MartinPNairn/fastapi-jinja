@@ -26,13 +26,34 @@ class UserService(UserServiceProtocol):
         self._hasher = password_hasher
         self._session = session
 
+    def authenticate(
+        self,
+        form_data: LoginCredentials,
+    ) -> User:
+        user = self.get_by_username(username=form_data.username)
+        if not self._hasher.verify_hash(form_data.password, user.hashed_password):
+            raise InvalidCredentialsError()
+        return user
+
+    def get_by_username(
+        self,
+        username: str,
+    ) -> User:
+        return self._get_user(username=username)
+
     def get_by_id(
         self,
         user_id: int,
     ) -> User:
+        return self._get_user(id=user_id)
+
+    def _get_user(
+        self,
+        **condition,
+    ) -> User:
         try:
-            user = self._repository.get_by_conditions(id=user_id)
-            if not user:
+            user = self._repository.get_by_conditions(**condition)
+            if user is None:
                 raise UserNotFoundError()
             return user
 
@@ -48,29 +69,15 @@ class UserService(UserServiceProtocol):
         except SQLAlchemyError as e:
             raise UserServiceError() from e
 
-    def authenticate(
-        self, 
-        form_data: LoginCredentials,
-    ) -> User:
-        try:
-            user = self._repository.get_by_conditions(username=form_data.username)
-            if user is None:
-                raise UserNotFoundError()
-            if not self._hasher.verify_hash(form_data.password, user.hashed_password):
-                raise InvalidCredentialsError()
-            return user
-        
-        except SQLAlchemyError as e:
-            raise UserServiceError() from e
-
-    def create_account(
+    def register(
         self,
         user_data: UserCreateRequest,
     ) -> User:
         try:
-            new_user = self._repository.create(
-                user_data.model_dump(),
-            )
+            data = user_data.model_dump(exclude={"password"})
+            hashed_pass = self._hasher.generate_hash(user_data.password)
+            data.update(hashed_password=hashed_pass.hashed_password)
+            new_user = self._repository.create(data)
             self._session.commit()
             return new_user
 
@@ -87,23 +94,18 @@ class UserService(UserServiceProtocol):
         user: User,
         pass_data: ChangePasswordRequest,
     ) -> None:
-        # TODO: ADD PASSWORD VERIFICATION LOGIC
-        data = pass_data.model_dump(
-            exclude_unset=True,
-            exclude_none=True,
-        )
-        self._update(user, data)
+        if not self._hasher.verify_hash(pass_data.old_password, user.hashed_password):
+            raise InvalidCredentialsError()
+
+        new_hash = self._hasher.generate_hash(pass_data.new_password)
+        self._update(user, {"hashed_password": new_hash.hashed_password})
 
     def change_phone(
         self,
         user: User,
         phone_data: ChangePhoneRequest,
     ) -> None:
-        data = phone_data.model_dump(
-            exclude_unset=True,
-            exclude_none=True,
-        )
-        self._update(user, data)
+        self._update(user, {"phone_number": phone_data.phone_number})
 
     def _update(
         self,

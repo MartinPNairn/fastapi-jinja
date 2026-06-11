@@ -1,7 +1,6 @@
 name: CI
 
 on:
-
   push:
     branches:
       - main
@@ -11,13 +10,12 @@ on:
       - main
 
 jobs:
-
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      
+
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
@@ -26,10 +24,10 @@ jobs:
 
       - name: Run Tests
         env:
-          TOKEN_EXPIRATION_MINUTES: ${{ secrets.TOKEN_EXPIRATION_MINUTES }} 
-          SECRET_KEY: ${{ secrets.SECRET_KEY }} 
-          HASHING_ALGORITHM: ${{ secrets.HASHING_ALGORITHM }} 
-          SQLALCHEMY_DATABASE_URL: ${{ secrets.SQLALCHEMY_DATABASE_URL }} 
+          TOKEN_EXPIRATION_MINUTES: ${{ secrets.TOKEN_EXPIRATION_MINUTES }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          HASHING_ALGORITHM: ${{ secrets.HASHING_ALGORITHM }}
+          SQLALCHEMY_DATABASE_URL: ${{ secrets.SQLALCHEMY_DATABASE_URL }}
         run: uv run pytest --cov=app
 
   build:

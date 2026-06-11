@@ -28,6 +28,7 @@ class SQLAlchemyUserRepository(UserRepositoryProtocol):
             .where(User.id == user_id)
             .values(**user_data)
             .returning(User)
+            .execution_options(populate_existing=True)
         )
         return self._session.execute(stmt).scalar_one_or_none()
 

@@ -22,8 +22,7 @@ from app.core.security.token_manager import (
 router = APIRouter()
 
 
-# Login and generate JWT token for user
-@router.post("/login", response_model=Token)
+@router.post("/login")
 async def login_for_access_and_refresh_token(
     response: Response,
     credentials_data: FormDep,
@@ -73,21 +72,32 @@ async def login_for_access_and_refresh_token(
         ) from e
 
 
-@router.post("/refresh", response_model=Token)
+@router.post("/refresh")
 def refresh_for_new_access_token(
     request: Request,
-    session: SessionDep,
     settings: SettingsDep,
+    user_service: UserReadServiceDep,
 ) -> Token:
     refresh_token = request.cookies.get("refresh_token")
-
     if refresh_token is None:
-        raise HTTPValidationException(detail="Missing refresh token")
+        raise HTTPValidationException(
+            detail="Missing refresh token",
+            )
+    try:
+        username = verify_token(refresh_token, "refresh")
+        user = user_service.get_by_username(username)
 
-    username = verify_token(refresh_token, "refresh")
-    user = get_entry(User, session, User.username == username)
-    if user is None:
-        raise HTTPValidationException(status_code=401, detail="User not found")
+    except UserNotFoundError as e:
+        raise HTTPValidationException(
+            status_code=401, 
+            detail="User not found"
+            ) from e
+    
+    except UserServiceError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Database error.",
+        ) from e
 
     new_access_token = create_access_token(
         data={"sub": user.username, "id": user.id, "role": user.role},
