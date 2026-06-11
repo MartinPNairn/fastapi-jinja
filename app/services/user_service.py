@@ -68,8 +68,11 @@ class UserService(UserServiceProtocol):
         user_data: UserCreateRequest,
     ) -> User:
         try:
+            data = user_data.model_dump(exclude={"password"})
+            hashed_pass = self._hasher.generate_hash(user_data.password)
+            data.update(hashed_password=hashed_pass.hashed_password)
             new_user = self._repository.create(
-                user_data.model_dump(),
+                data,
             )
             self._session.commit()
             return new_user
@@ -88,6 +91,7 @@ class UserService(UserServiceProtocol):
         pass_data: ChangePasswordRequest,
     ) -> None:
         # TODO: ADD PASSWORD VERIFICATION LOGIC
+
         data = pass_data.model_dump(
             exclude_unset=True,
             exclude_none=True,
