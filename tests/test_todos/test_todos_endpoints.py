@@ -32,12 +32,12 @@ def test_read_one_authenticated_not_found(client, test_user, test_todo):
     assert "not found" in response.json()["detail"].lower()
 
 
-def test_create_todo(client, test_user, db, valid_todo_payload):
+def test_create_todo(client, test_user, session, valid_todo_payload):
     test_client = client(test_user)
     response = test_client.post("/todos/create", json=valid_todo_payload)
     assert response.status_code == 201
     todo = get_fresh_entry_with_conditions(
-        db,
+        session,
         Todo,
         Todo.title == valid_todo_payload["title"],
         Todo.owner_id == test_user.id,
@@ -65,14 +65,14 @@ def test_create_todo_empty_required_values(client, test_user, valid_todo_payload
     assert response.json()["detail"][0]["type"] == "string_too_short"
 
 
-def test_update_todo(client, test_user, db, test_todo, valid_todo_payload):
+def test_update_todo(client, test_user, session, test_todo, valid_todo_payload):
     test_client = client(test_user)
     update_data = {**valid_todo_payload, "title": "An updated title"}
     response = test_client.put(
         f"/todos/update/{test_todo.id}",
         json=update_data,
     )
-    updated_todo = get_fresh_entry_by_primary_key(db, Todo, test_todo.id)
+    updated_todo = get_fresh_entry_by_primary_key(session, Todo, test_todo.id)
     assert response.status_code == 204
     for key in update_data:
         assert getattr(updated_todo, key) == update_data[key]
@@ -87,20 +87,20 @@ def test_update_todo_not_found(client, test_user, test_todo, valid_todo_payload)
     assert "not found" in response.json()["detail"].lower()
 
 
-def test_update_todo_wrong_user(client, test_user, db, test_todo, valid_todo_payload):
+def test_update_todo_wrong_user(client, test_user, session, test_todo, valid_todo_payload):
     test_todo.owner_id = test_user.id + 999
-    db.commit()
+    session.commit()
     test_client = client(test_user)
     response = test_client.put(f"/todos/update/{test_todo.id}", json=valid_todo_payload)
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
 
 
-def test_delete_todo(client, test_user, db, test_todo):
+def test_delete_todo(client, test_user, session, test_todo):
     test_client = client(test_user)
     response = test_client.delete(f"/todos/delete/{test_todo.id}")
     assert response.status_code == 204
-    assert not entry_is_in_db(db, Todo, test_todo.id)
+    assert not entry_is_in_db(session, Todo, test_todo.id)
 
 
 def test_delete_todo_not_found(client, test_user, test_todo):

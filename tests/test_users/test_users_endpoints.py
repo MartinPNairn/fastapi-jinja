@@ -4,7 +4,7 @@ from app.schemas import UserResponse
 from app.core.security.password_hasher import verify_password_hash
 
 
-def test_create_user(client, db):
+def test_create_user(client, session):
     test_client = client()
     new_user = {
         'email': 'john@gmail.com',
@@ -17,7 +17,7 @@ def test_create_user(client, db):
     }
     response = test_client.post("/users/create", json=new_user)
     assert response.status_code == 201
-    user = get_entry(User, db, User.username == new_user["username"])
+    user = get_entry(User, session, User.username == new_user["username"])
     assert user is not None
 
 
@@ -29,7 +29,7 @@ def test_get_user(client, test_user):
         assert response.json()[attr] == value
 
 
-def test_update_password(client, test_user, db):
+def test_update_password(client, test_user, session):
     test_client = client(test_user)
     request_data = {
         "old_password": "juan123",
@@ -37,7 +37,7 @@ def test_update_password(client, test_user, db):
     }
     response = test_client.put("/users/update-password", json=request_data)
     assert response.status_code == 204
-    db.refresh(test_user)
+    session.refresh(test_user)
     assert verify_password_hash(request_data["new_password"], test_user.hashed_password)
 
 
@@ -52,7 +52,7 @@ def test_update_password_invalid_current_password(client, test_user):
     assert response.json() == {'detail': 'Wrong current password'}
 
 
-def test_update_phone(client, test_user, db):
+def test_update_phone(client, test_user, session):
     test_client = client(test_user)
     request_data = {
         "phone_number": "1122334456",

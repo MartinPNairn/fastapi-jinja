@@ -9,16 +9,16 @@ from app.core.config import get_settings
 settings = get_settings()
 
 
-def test_authenticate_user(test_user, db):
+def test_authenticate_user(test_user, session):
     password = "juan123"
-    authenticated_user = authenticate_user(test_user.username, password, db)
+    authenticated_user = authenticate_user(test_user.username, password, session)
     assert authenticated_user is not False
     assert authenticated_user.username == test_user.username
 
-    authenticated_user = authenticate_user("aWrongUser", password, db)
+    authenticated_user = authenticate_user("aWrongUser", password, session)
     assert authenticated_user is False
 
-    authenticated_user = authenticate_user(test_user.username, "aWrongPassword", db)
+    authenticated_user = authenticate_user(test_user.username, "aWrongPassword", session)
     assert authenticated_user is False
 
 

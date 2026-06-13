@@ -1,13 +1,11 @@
 from typing import Annotated
 
-from fastapi import Request, Depends
-from sqlalchemy.orm import Session
+from fastapi import Request, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
-
+from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.crud import get_entry
 from app.models import User
 from app.schemas.auth import LoginCredentials
 from app.repositories.todo_repository import SQLAlchemyTodoRepository
@@ -25,7 +23,9 @@ from app.services.user_protocols import (
     UserAdminService,
 )
 from app.core.security.password_hasher import PwdlibPasswordHasher
-from app.core.security.token_manager import verify_token, HTTPValidationException
+from app.core.security.token_manager import verify_token
+from app.exceptions.security_exceptions import HTTPValidationException
+from app.exceptions.user_exceptions import UserNotFoundError, UserServiceError
 
 
 templates = Jinja2Templates(directory="app/frontend/templates")
@@ -41,7 +41,8 @@ def get_login_credentials(
     request_form: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> LoginCredentials:
     return LoginCredentials(
-        username=request_form.username, password=request_form.password
+        username=request_form.username,
+        password=request_form.password,
     )
 
 
@@ -98,16 +99,29 @@ UserWriteServiceDep = Annotated[UserWriteService, Depends(get_user_service)]
 UserAdminServiceDep = Annotated[UserAdminService, Depends(get_user_service)]
 
 
-async def get_current_user(token: TokenDep, session: SessionDep) -> User:
+async def get_current_user(
+    token: TokenDep,
+    user_service: UserReadServiceDep,
+) -> User:
     username = verify_token(token, "access")
-    user = get_entry(User, session, User.username == username)
-    if not user:
-        raise HTTPValidationException(status_code=401)
-    return user
+    try:
+        return user_service.get_by_username(username)
+
+    except UserNotFoundError:
+        raise HTTPValidationException(
+            status_code=401,
+        )
+
+    except UserServiceError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Database error.",
+        ) from e
 
 
 async def get_current_user_from_cookie(
-    request: Request, session: SessionDep
+    request: Request,
+    user_service: UserReadServiceDep,
 ) -> User | None:
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
@@ -115,11 +129,16 @@ async def get_current_user_from_cookie(
 
     try:
         username = verify_token(refresh_token, "refresh")
-        user = get_entry(User, session, User.username == username)
-        return user
+        return user_service.get_by_username(username)
 
-    except HTTPValidationException:
+    except (HTTPValidationException, UserNotFoundError):
         return None
+
+    except UserServiceError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Database error.",
+        ) from e
 
 
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
