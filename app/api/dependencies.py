@@ -50,34 +50,6 @@ TokenDep = Annotated[str, Depends(oauth2_scheme)]
 FormDep = Annotated[LoginCredentials, Depends(get_login_credentials)]
 
 
-async def get_current_user(token: TokenDep, session: SessionDep) -> User:
-    username = verify_token(token, "access")
-    user = get_entry(User, session, User.username == username)
-    if not user:
-        raise HTTPValidationException(status_code=401)
-    return user
-
-
-async def get_current_user_from_cookie(
-    request: Request, session: SessionDep
-) -> User | None:
-    refresh_token = request.cookies.get("refresh_token")
-    if not refresh_token:
-        return None
-
-    try:
-        username = verify_token(refresh_token, "refresh")
-        user = get_entry(User, session, User.username == username)
-        return user
-
-    except HTTPValidationException:
-        return None
-
-
-CurrentUserDep = Annotated[User, Depends(get_current_user)]
-CookieCurrentUserDep = Annotated[User | None, Depends(get_current_user_from_cookie)]
-
-
 def get_todo_repository(session: SessionDep) -> SQLAlchemyTodoRepository:
     return SQLAlchemyTodoRepository(session)
 
@@ -88,7 +60,7 @@ SQLAlchemyTodoRepositoryDep = Annotated[
 
 
 def get_todo_service(
-    repository: SQLAlchemyTodoRepositoryDep, 
+    repository: SQLAlchemyTodoRepositoryDep,
     session: SessionDep,
 ) -> TodoService:
     return TodoService(repository, session)
@@ -124,3 +96,31 @@ def get_user_service(
 UserReadServiceDep = Annotated[UserReadService, Depends(get_user_service)]
 UserWriteServiceDep = Annotated[UserWriteService, Depends(get_user_service)]
 UserAdminServiceDep = Annotated[UserAdminService, Depends(get_user_service)]
+
+
+async def get_current_user(token: TokenDep, session: SessionDep) -> User:
+    username = verify_token(token, "access")
+    user = get_entry(User, session, User.username == username)
+    if not user:
+        raise HTTPValidationException(status_code=401)
+    return user
+
+
+async def get_current_user_from_cookie(
+    request: Request, session: SessionDep
+) -> User | None:
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        return None
+
+    try:
+        username = verify_token(refresh_token, "refresh")
+        user = get_entry(User, session, User.username == username)
+        return user
+
+    except HTTPValidationException:
+        return None
+
+
+CurrentUserDep = Annotated[User, Depends(get_current_user)]
+CookieCurrentUserDep = Annotated[User | None, Depends(get_current_user_from_cookie)]
