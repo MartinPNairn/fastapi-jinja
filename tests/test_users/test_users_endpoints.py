@@ -4,6 +4,8 @@ from app.schemas import UserResponse
 from app.core.security.password_hasher import verify_password_hash
 
 
+# TODO: UPDATE THESE TESTS TO USE USER SERVICE
+
 def test_create_user(client, session):
     test_client = client()
     new_user = {
@@ -49,7 +51,7 @@ def test_update_password_invalid_current_password(client, test_user):
     }
     response = test_client.put("/users/update-password", json=request_data)
     assert response.status_code == 401
-    assert response.json() == {'detail': 'Wrong current password'}
+    assert response.json() == {'detail': 'Wrong current password.'}
 
 
 def test_update_phone(client, test_user, session):

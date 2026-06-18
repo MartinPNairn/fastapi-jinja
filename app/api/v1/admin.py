@@ -11,6 +11,7 @@ from app.exceptions.todo_exceptions import TodoNotFoundError, TodoServiceError
 
 router = APIRouter()
 
+# TODO: IMPLEMENT USER SERVICE ON THIS ENDPOINTS
 
 @router.get("/users", status_code=status.HTTP_200_OK)
 async def get_all_users(
