@@ -7,7 +7,7 @@ from app.models import User, Todo
 from app.db.base import Base
 from app.main import app
 from app.api.dependencies import get_session, get_current_user, get_user_service
-from app.core.security.password_hasher import create_password_hash, PwdlibPasswordHasher
+from app.core.security.password_hasher import PwdlibPasswordHasher
 from app.core.config import Settings, get_settings
 from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFoundError
 from app.repositories.user_repository import SQLAlchemyUserRepository
@@ -48,7 +48,7 @@ def test_user(session):
         username="juanperez",
         first_name="Juan",
         last_name="Perez",
-        hashed_password=create_password_hash("juan123"),
+        hashed_password=PwdlibPasswordHasher().generate_hash("juan123").hashed_password,
         phone_number=11223344,
         role="user",
     )
@@ -65,7 +65,7 @@ def test_admin(session):
         username="johnpeters",
         first_name="John",
         last_name="Peters",
-        hashed_password=create_password_hash("john123"),
+        hashed_password=PwdlibPasswordHasher().generate_hash("john123").hashed_password,
         phone_number=111222333,
         role="admin",
     )
