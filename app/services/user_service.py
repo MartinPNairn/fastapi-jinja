@@ -12,6 +12,7 @@ from app.exceptions.user_exceptions import (
     UserNotFoundError,
     UserServiceError,
     InvalidCredentialsError,
+    StaleUserError,
 )
 
 
@@ -117,7 +118,7 @@ class UserService(UserServiceProtocol):
                 new_data,
             )
             if not updated_user:
-                raise UserNotFoundError()
+                raise StaleUserError()
             self._session.commit()
 
         except SQLAlchemyError as e:

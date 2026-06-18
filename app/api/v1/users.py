@@ -4,6 +4,7 @@ from app.exceptions.user_exceptions import (
     UserServiceError,
     UserAlreadyExistsError,
     InvalidCredentialsError,
+    StaleUserError,
 )
 from app.exceptions.security_exceptions import HTTPValidationException
 from app.schemas import (
@@ -16,7 +17,13 @@ from app.schemas import (
 router = APIRouter()
 
 
-# Create a new user
+@router.get("/get-user", status_code=status.HTTP_200_OK)
+async def get_user(
+    user: CurrentUserDep,
+) -> UserResponse:
+    return user  # pyright: ignore[reportReturnType]
+
+
 @router.post("/create", status_code=status.HTTP_201_CREATED)
 async def create_user(
     user_service: UserWriteServiceDep,
@@ -37,13 +44,6 @@ async def create_user(
         ) from e
 
 
-@router.get("/get-user", status_code=status.HTTP_200_OK)
-async def get_user(
-    user: CurrentUserDep,
-) -> UserResponse:
-    return user  # pyright: ignore[reportReturnType]
-
-
 @router.put("/update-password", status_code=status.HTTP_204_NO_CONTENT)
 async def update_password(
     user: CurrentUserDep,
@@ -55,7 +55,13 @@ async def update_password(
 
     except InvalidCredentialsError as e:
         raise HTTPValidationException(
-            status_code=401, detail="Wrong current password."
+            status_code=401, 
+            detail="Wrong current password.",
+        ) from e
+        
+    except StaleUserError as e:
+        raise HTTPException(
+            status_code=401,
         ) from e
 
     except UserServiceError as e:
@@ -72,6 +78,11 @@ async def update_phone(
 ) -> None:
     try:
         user_service.change_phone(user, new_data)
+
+    except StaleUserError as e:
+        raise HTTPException(
+            status_code=401,
+        ) from e
 
     except UserServiceError as e:
         raise HTTPException(
