@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Response, Request, HTTPException
 
-from app.api.dependencies import SessionDep, FormDep, UserReadServiceDep
+from app.api.dependencies import FormDep, UserReadServiceDep
 from app.schemas import Token
-from app.crud import get_entry
-from app.models import User
 from app.core.config import SettingsDep
 from app.exceptions.user_exceptions import (
     UserNotFoundError,
@@ -11,7 +9,6 @@ from app.exceptions.user_exceptions import (
     InvalidCredentialsError,
 )
 from app.exceptions.security_exceptions import HTTPValidationException
-from app.core.security.password_hasher import authenticate_user
 from app.core.security.token_manager import (
     create_access_token,
     create_refresh_token,

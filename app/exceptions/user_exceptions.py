@@ -14,5 +14,9 @@ class UserServiceError(UserError):
     pass
 
 
+class StaleUserError(UserError):
+    pass
+
+
 class InvalidCredentialsError(UserError):
     pass

@@ -7,9 +7,11 @@ from app.models import User, Todo
 from app.db.base import Base
 from app.main import app
 from app.api.dependencies import get_session, get_current_user, get_user_service
-from app.core.security.password_hasher import create_password_hash
+from app.core.security.password_hasher import PwdlibPasswordHasher
 from app.core.config import Settings, get_settings
 from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFoundError
+from app.repositories.user_repository import SQLAlchemyUserRepository
+from app.services.user_service import UserService
 
 
 SQLALCHEMY_TEST_URL = "sqlite:///./test_db.db"
@@ -27,64 +29,73 @@ def database_setup_cleanup():
 
 
 @pytest.fixture()
-def db():
+def session():
     connection = engine.connect()
     transaction = connection.begin()
-    db = TestingSessionLocal(bind=connection)
+    session = TestingSessionLocal(bind=connection)
     try:
-        yield db
+        yield session
     finally:
         transaction.rollback()
-        db.close()
+        session.close()
         connection.close()
 
 
 @pytest.fixture()
-def test_user(db):
+def test_user(session):
     user = User(
         email="juan@gmail.com",
         username="juanperez",
         first_name="Juan",
         last_name="Perez",
-        hashed_password=create_password_hash("juan123"),
+        hashed_password=PwdlibPasswordHasher().generate_hash("juan123").hashed_password,
         phone_number=11223344,
         role="user",
     )
-    db.add(user)
-    db.flush()
-    db.refresh(user)
+    session.add(user)
+    session.flush()
+    session.refresh(user)
     return user
 
 
 @pytest.fixture()
-def test_admin(db):
+def test_admin(session):
     admin = User(
         email="john@gmail.com",
         username="johnpeters",
         first_name="John",
         last_name="Peters",
-        hashed_password=create_password_hash("john123"),
+        hashed_password=PwdlibPasswordHasher().generate_hash("john123").hashed_password,
         phone_number=111222333,
         role="admin",
     )
-    db.add(admin)
-    db.flush()
-    db.refresh(admin)
+    session.add(admin)
+    session.flush()
+    session.refresh(admin)
     return admin
 
 
 @pytest.fixture()
-def test_todo(db, test_user):
+def test_todo(session, test_user):
     todo = Todo(
         title="Do laundry",
         description="Everything is dirty",
         priority=1,
         owner_id=test_user.id,
     )
-    db.add(todo)
-    db.flush()
-    db.refresh(todo)
+    session.add(todo)
+    session.flush()
+    session.refresh(todo)
     return todo
+
+
+@pytest.fixture()
+def user_service(session):
+    return UserService(
+        SQLAlchemyUserRepository(session),
+        PwdlibPasswordHasher(),
+        session,
+    )
 
 
 @pytest.fixture()
@@ -93,12 +104,12 @@ def valid_todo_payload():
         "title": "A new todo",
         "description": "This is a todo",
         "priority": 1,
-        "complete": False
+        "complete": False,
     }
 
 
 @pytest.fixture()
-def client(db):
+def client(session):
     """
     Return TestClient with dependency overrides for settings, db and current_user.
     """
@@ -111,7 +122,7 @@ def client(db):
 
     def _make_client(user: User | None = None):
         def override_get_session():
-            yield db
+            yield session
 
         async def override_get_current_user():
             return user
@@ -138,16 +149,14 @@ def mock_security(monkeypatch):
         phone_number = 11223344
         role = "user"
 
-    # def mock_authenticate_user(username: str, password: str, db):
-    #     if username == "juanperez" and password == "secret":
-    #         return MockUser()
-    #     return False
-
     class MockUserService:
         def authenticate(self, credentials_data):
             if credentials_data.username != "juanperez":
                 raise UserNotFoundError()
-            if credentials_data.username == "juanperez" and credentials_data.password == "secret":
+            if (
+                credentials_data.username == "juanperez"
+                and credentials_data.password == "secret"
+            ):
                 return MockUser()
             raise InvalidCredentialsError()
 

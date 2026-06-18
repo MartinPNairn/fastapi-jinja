@@ -1,59 +1,90 @@
 from fastapi import APIRouter, status, HTTPException
-from app.models import User
-from app.api.dependencies import SessionDep, CurrentUserDep
-from app.crud import update_entry, create_entry, DatabaseError
+from app.api.dependencies import CurrentUserDep, UserWriteServiceDep
+from app.exceptions.user_exceptions import (
+    UserServiceError,
+    UserAlreadyExistsError,
+    InvalidCredentialsError,
+    StaleUserError,
+)
+from app.exceptions.security_exceptions import HTTPValidationException
 from app.schemas import (
     ChangePasswordRequest,
-    HashedPassword,
     ChangePhoneRequest,
     UserCreateRequest,
     UserResponse,
 )
-from app.core.security.password_hasher import verify_password_hash, create_password_hash
 
 router = APIRouter()
 
 
-# Create a new user
-@router.post(
-    "/create", response_model=UserResponse, status_code=status.HTTP_201_CREATED
-)
-async def create_user(user_create_request: UserCreateRequest, session: SessionDep):
-    user_data = user_create_request.model_dump(exclude={"password"})
-    new_user = User(
-        **user_data, hashed_password=create_password_hash(user_create_request.password)
-    )
-    try:
-        user_created = create_entry(new_user, session)
-    except DatabaseError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    return user_created
-
-
 @router.get("/get-user", status_code=status.HTTP_200_OK)
-async def get_user(user: CurrentUserDep):
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    return user
+async def get_user(
+    user: CurrentUserDep,
+) -> UserResponse:
+    return user  # pyright: ignore[reportReturnType]
+
+
+@router.post("/create", status_code=status.HTTP_201_CREATED)
+async def create_user(
+    user_service: UserWriteServiceDep,
+    user_create_request: UserCreateRequest,
+) -> UserResponse:
+    try:
+        new_user = user_service.register(user_create_request)
+        return new_user  # pyright: ignore[reportReturnType]
+
+    except UserAlreadyExistsError as e:
+        raise HTTPException(
+            status_code=409,
+        ) from e
+
+    except UserServiceError as e:
+        raise HTTPException(
+            status_code=500,
+        ) from e
 
 
 @router.put("/update-password", status_code=status.HTTP_204_NO_CONTENT)
 async def update_password(
-    user: CurrentUserDep, session: SessionDep, new_data: ChangePasswordRequest
-):
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    if not verify_password_hash(new_data.old_password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Wrong current password")
-    new_hash = create_password_hash(new_data.new_password)
-    new_hashed_password = HashedPassword(hashed_password=new_hash)
-    update_entry(user.id, User, new_hashed_password, session)
+    user: CurrentUserDep,
+    user_service: UserWriteServiceDep,
+    new_data: ChangePasswordRequest,
+) -> None:
+    try:
+        user_service.change_password(user, new_data)
+
+    except InvalidCredentialsError as e:
+        raise HTTPValidationException(
+            status_code=401, 
+            detail="Wrong current password.",
+        ) from e
+        
+    except StaleUserError as e:
+        raise HTTPException(
+            status_code=401,
+        ) from e
+
+    except UserServiceError as e:
+        raise HTTPException(
+            status_code=500,
+        ) from e
 
 
 @router.put("/update-phone", status_code=status.HTTP_204_NO_CONTENT)
 async def update_phone(
-    user: CurrentUserDep, session: SessionDep, new_data: ChangePhoneRequest
-):
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    update_entry(user.id, User, new_data, session)
+    user: CurrentUserDep,
+    user_service: UserWriteServiceDep,
+    new_data: ChangePhoneRequest,
+) -> None:
+    try:
+        user_service.change_phone(user, new_data)
+
+    except StaleUserError as e:
+        raise HTTPException(
+            status_code=401,
+        ) from e
+
+    except UserServiceError as e:
+        raise HTTPException(
+            status_code=500,
+        ) from e

@@ -45,10 +45,10 @@ def test_get_all_todos_not_authenticated(client):
     assert response.json() == {"detail": "Authorization failed."}
 
 
-def test_delete_todo(client, test_admin, test_todo, db):
+def test_delete_todo(client, test_admin, test_todo, session):
     test_client = client(test_admin)
     response = test_client.delete(f"/admin/todos/delete/{test_todo.id}")
-    todo_deleted = get_fresh_entry_by_primary_key(db, Todo, test_todo.id)
+    todo_deleted = get_fresh_entry_by_primary_key(session, Todo, test_todo.id)
     assert todo_deleted is None
     assert response.status_code == 204
     assert response.text == ""

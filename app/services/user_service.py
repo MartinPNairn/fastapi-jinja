@@ -12,6 +12,7 @@ from app.exceptions.user_exceptions import (
     UserNotFoundError,
     UserServiceError,
     InvalidCredentialsError,
+    StaleUserError,
 )
 
 
@@ -96,7 +97,6 @@ class UserService(UserServiceProtocol):
     ) -> None:
         if not self._hasher.verify_hash(pass_data.old_password, user.hashed_password):
             raise InvalidCredentialsError()
-
         new_hash = self._hasher.generate_hash(pass_data.new_password)
         self._update(user, {"hashed_password": new_hash.hashed_password})
 
@@ -118,7 +118,7 @@ class UserService(UserServiceProtocol):
                 new_data,
             )
             if not updated_user:
-                raise UserNotFoundError()
+                raise StaleUserError()
             self._session.commit()
 
         except SQLAlchemyError as e:
