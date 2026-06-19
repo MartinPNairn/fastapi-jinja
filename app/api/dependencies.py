@@ -110,6 +110,7 @@ async def get_current_user(
     except UserNotFoundError:
         raise HTTPValidationException(
             status_code=401,
+            detail="Authorization failed."
         )
 
     except UserServiceError as e:
@@ -143,3 +144,15 @@ async def get_current_user_from_cookie(
 
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 CookieCurrentUserDep = Annotated[User | None, Depends(get_current_user_from_cookie)]
+
+
+async def require_admin(user: CurrentUserDep):
+    if user.role.casefold() != "admin":
+        raise HTTPValidationException(
+            status_code=403,
+            detail="Admin access required"
+        )
+    return user
+
+
+CurrentUserAdminDep = Annotated[User, Depends(require_admin)]
