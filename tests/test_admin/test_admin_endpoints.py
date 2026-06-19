@@ -7,21 +7,21 @@ def test_get_all_users(client, test_admin):
     test_client = client(test_admin)
     response = test_client.get("/admin/users")
     assert response.status_code == 200
-    assert response.json() == [UserResponse.model_validate(test_admin).model_dump()]
+    assert response.json() == [UserResponse.model_validate(test_admin).model_dump(mode="json")]
 
 
 def test_get_all_users_not_admin(client, test_user):
     test_client = client(test_user)
     response = test_client.get("/admin/users")
-    assert response.status_code == 401
-    assert response.json() == {"detail": "Authorization failed."}
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Admin access required"}
 
 
 def test_get_all_users_not_authenticated(client):
     test_client = client()
     response = test_client.get("/admin/users")
     assert response.status_code == 401
-    assert response.json() == {'detail': 'Authorization failed.'}
+    assert response.json() == {'detail': "Authorization failed."}
 
 
 def test_get_all_todos(client, test_admin, test_todo):
@@ -34,8 +34,8 @@ def test_get_all_todos(client, test_admin, test_todo):
 def test_get_all_todos_not_admin(client, test_user):
     test_client = client(test_user)
     response = test_client.get("/admin/todos")
-    assert response.status_code == 401
-    assert response.json() == {"detail": "Authorization failed."}
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Admin access required"}
 
 
 def test_get_all_todos_not_authenticated(client):
@@ -57,8 +57,8 @@ def test_delete_todo(client, test_admin, test_todo, session):
 def test_delete_todo_not_admin(client, test_user, test_todo):
     test_client = client(test_user)
     response = test_client.delete(f"/admin/todos/delete/{test_todo.id}")
-    assert response.status_code == 401
-    assert response.json() == {"detail": "Authorization failed."}
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Admin access required"}
 
 
 def test_delete_todo_not_authenticated(client, test_todo):

@@ -10,6 +10,7 @@ from app.api.dependencies import get_session, get_current_user, get_user_service
 from app.core.security.password_hasher import PwdlibPasswordHasher
 from app.core.config import Settings, get_settings
 from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFoundError
+from app.exceptions.security_exceptions import HTTPValidationException
 from app.repositories.user_repository import SQLAlchemyUserRepository
 from app.services.user_service import UserService
 
@@ -125,6 +126,11 @@ def client(session):
             yield session
 
         async def override_get_current_user():
+            if user is None:
+                raise HTTPValidationException(
+                    status_code=401,
+                    detail="Authorization failed."
+                    )
             return user
 
         app.dependency_overrides[get_session] = override_get_session
