@@ -4,9 +4,10 @@ import jwt
 
 from app.core.config import Settings, get_settings
 from app.exceptions.security_exceptions import HTTPValidationException
+from app.core.security.security_protocols import TokenServiceProtocol
 
 
-class TokenService:
+class TokenService(TokenServiceProtocol):
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
