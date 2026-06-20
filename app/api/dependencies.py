@@ -13,6 +13,7 @@ from app.repositories.todo_repository import SQLAlchemyTodoRepository
 from app.repositories.user_repository import SQLAlchemyUserRepository
 from app.services.todo_service import TodoService
 from app.services.user_service import UserService
+from app.services.auth_service import AuthService
 from app.services.todo_protocols import (
     TodoReadServiceProtocol,
     TodoWriteServiceProtocol,
@@ -23,7 +24,11 @@ from app.services.user_protocols import (
     UserWriteServiceProtocol,
     UserAdminServiceProtocol,
 )
-from app.core.security.security_protocols import PasswordHasherProtocol, TokenServiceProtocol
+from app.services.auth_protocols import AuthServiceProtocol
+from app.core.security.security_protocols import (
+    PasswordHasherProtocol,
+    TokenServiceProtocol,
+)
 from app.core.security.password_hasher import PwdlibPasswordHasher
 from app.core.security.token_service import TokenService
 from app.exceptions.http_exceptions import HTTPValidationException
@@ -48,9 +53,8 @@ def get_login_credentials(
     )
 
 
-def get_token_service(settings: SettingsDep):
+def get_token_service(settings: SettingsDep) -> TokenService:
     return TokenService(settings)
-
 
 
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -91,7 +95,9 @@ def get_password_hasher() -> PwdlibPasswordHasher:
 SQLAlchemyUserRepositoryDep = Annotated[
     SQLAlchemyUserRepository, Depends(get_user_repository)
 ]
-PwdlibPasswordHasherDep = Annotated[PasswordHasherProtocol, Depends(get_password_hasher)]
+PwdlibPasswordHasherDep = Annotated[
+    PasswordHasherProtocol, Depends(get_password_hasher)
+]
 
 
 def get_user_service(
@@ -107,6 +113,16 @@ UserWriteServiceDep = Annotated[UserWriteServiceProtocol, Depends(get_user_servi
 UserAdminServiceDep = Annotated[UserAdminServiceProtocol, Depends(get_user_service)]
 
 
+def get_auth_service(
+    token_service: TokenServiceDep,
+    user_service: UserReadServiceDep,
+) -> AuthService:
+    return AuthService(token_service, user_service)
+
+
+AuthServiceDep = Annotated[AuthServiceProtocol, Depends(get_auth_service)]
+
+
 async def get_current_user(
     token: TokenDep,
     token_service: TokenServiceDep,
@@ -117,10 +133,7 @@ async def get_current_user(
         return user_service.get_by_username(username)
 
     except UserNotFoundError:
-        raise HTTPValidationException(
-            status_code=401,
-            detail="Authorization failed."
-        )
+        raise HTTPValidationException(status_code=401, detail="Authorization failed.")
 
     except UserServiceError as e:
         raise HTTPException(
@@ -158,10 +171,7 @@ CookieCurrentUserDep = Annotated[User | None, Depends(get_current_user_from_cook
 
 async def require_admin(user: CurrentUserDep):
     if user.role.casefold() != "admin":
-        raise HTTPValidationException(
-            status_code=403,
-            detail="Admin access required"
-        )
+        raise HTTPValidationException(status_code=403, detail="Admin access required")
     return user
 
 

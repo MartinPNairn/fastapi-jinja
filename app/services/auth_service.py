@@ -1,7 +1,7 @@
 from typing import Literal
 from app.models.user import User
 from app.services.auth_protocols import AuthServiceProtocol
-from app.services.user_protocols import UserServiceProtocol
+from app.services.user_protocols import UserReadServiceProtocol
 from app.core.security.security_protocols import TokenServiceProtocol
 
 
@@ -9,7 +9,7 @@ class AuthService(AuthServiceProtocol):
     def __init__(
         self,
         token_service: TokenServiceProtocol,
-        user_service: UserServiceProtocol,
+        user_service: UserReadServiceProtocol,
     ) -> None:
         self.token_service = token_service
         self.user_service = user_service
