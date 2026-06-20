@@ -13,12 +13,22 @@ from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFound
 from app.exceptions.security_exceptions import HTTPValidationException
 from app.repositories.user_repository import SQLAlchemyUserRepository
 from app.services.user_service import UserService
+from app.core.security.token_service import TokenService
 
 
 SQLALCHEMY_TEST_URL = "sqlite:///./test_db.db"
 
 engine = create_engine(SQLALCHEMY_TEST_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+
+@pytest.fixture()
+def test_settings():
+    return Settings(
+            ENVIRONMENT="test",
+            SECRET_KEY="some-secret-key-long-enough-hehe",
+            DATABASE_URL=SQLALCHEMY_TEST_URL,
+        )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -100,6 +110,11 @@ def user_service(session):
 
 
 @pytest.fixture()
+def token_service(test_settings):
+    return TokenService(test_settings)
+
+
+@pytest.fixture()
 def valid_todo_payload():
     return {
         "title": "A new todo",
@@ -110,16 +125,13 @@ def valid_todo_payload():
 
 
 @pytest.fixture()
-def client(session):
+def client(session, test_settings):
     """
     Return TestClient with dependency overrides for settings, db and current_user.
     """
 
     def get_test_settings():
-        return Settings(
-            SECRET_KEY="some-secret-key-long-enough-hehe",
-            DATABASE_URL=SQLALCHEMY_TEST_URL,
-        )
+        return test_settings
 
     def _make_client(user: User | None = None):
         def override_get_session():
@@ -129,8 +141,8 @@ def client(session):
             if user is None:
                 raise HTTPValidationException(
                     status_code=401,
-                    detail="Authorization failed."
-                    )
+                    detail="Authorization failed.",
+                )
             return user
 
         app.dependency_overrides[get_session] = override_get_session

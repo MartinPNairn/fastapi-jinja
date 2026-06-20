@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Response, Request, HTTPException
 
-from app.api.dependencies import FormDep, UserReadServiceDep
+from app.api.dependencies import CredentialsFormDep, UserReadServiceDep
 from app.schemas import Token
 from app.core.config import SettingsDep
 from app.exceptions.user_exceptions import (
@@ -9,7 +9,7 @@ from app.exceptions.user_exceptions import (
     InvalidCredentialsError,
 )
 from app.exceptions.security_exceptions import HTTPValidationException
-from app.core.security.token_manager import (
+from app.core.security.token_service import (
     create_access_token,
     create_refresh_token,
     verify_token,
@@ -22,7 +22,7 @@ router = APIRouter()
 @router.post("/login")
 async def login_for_access_and_refresh_token(
     response: Response,
-    credentials_data: FormDep,
+    credentials_data: CredentialsFormDep,
     settings: SettingsDep,
     user_service: UserReadServiceDep,
 ) -> Token:
@@ -43,7 +43,7 @@ async def login_for_access_and_refresh_token(
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            secure=settings.ENVIRONMENT != "development",
+            secure=settings.ENVIRONMENT == "production",
             path="/",
             max_age=int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
         )

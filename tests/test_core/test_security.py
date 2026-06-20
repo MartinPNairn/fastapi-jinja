@@ -1,7 +1,7 @@
 import jwt
 import pytest
 
-from app.core.security.token_manager import create_access_token
+from app.core.security.token_service import create_access_token
 from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFoundError
 from app.schemas.auth import LoginCredentials
 from app.core.config import get_settings

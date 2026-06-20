@@ -8,22 +8,24 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.models import User
 from app.schemas.auth import LoginCredentials
+from app.core.config import SettingsDep
 from app.repositories.todo_repository import SQLAlchemyTodoRepository
 from app.repositories.user_repository import SQLAlchemyUserRepository
 from app.services.todo_service import TodoService
 from app.services.user_service import UserService
 from app.services.todo_protocols import (
-    TodoReadService,
-    TodoWriteService,
-    TodoAdminService,
+    TodoReadServiceProtocol,
+    TodoWriteServiceProtocol,
+    TodoAdminServiceProtocol,
 )
 from app.services.user_protocols import (
-    UserReadService,
-    UserWriteService,
-    UserAdminService,
+    UserReadServiceProtocol,
+    UserWriteServiceProtocol,
+    UserAdminServiceProtocol,
 )
+from app.core.security.security_protocols import PasswordHasherProtocol, TokenServiceProtocol
 from app.core.security.password_hasher import PwdlibPasswordHasher
-from app.core.security.token_manager import verify_token
+from app.core.security.token_service import TokenService
 from app.exceptions.security_exceptions import HTTPValidationException
 from app.exceptions.user_exceptions import UserNotFoundError, UserServiceError
 
@@ -46,9 +48,15 @@ def get_login_credentials(
     )
 
 
+def get_token_service(settings: SettingsDep):
+    return TokenService(settings)
+
+
+
 SessionDep = Annotated[Session, Depends(get_session)]
+TokenServiceDep = Annotated[TokenServiceProtocol, Depends(get_token_service)]
 TokenDep = Annotated[str, Depends(oauth2_scheme)]
-FormDep = Annotated[LoginCredentials, Depends(get_login_credentials)]
+CredentialsFormDep = Annotated[LoginCredentials, Depends(get_login_credentials)]
 
 
 def get_todo_repository(session: SessionDep) -> SQLAlchemyTodoRepository:
@@ -67,9 +75,9 @@ def get_todo_service(
     return TodoService(repository, session)
 
 
-TodoReadServiceDep = Annotated[TodoReadService, Depends(get_todo_service)]
-TodoWriteServiceDep = Annotated[TodoWriteService, Depends(get_todo_service)]
-TodoAdminServiceDep = Annotated[TodoAdminService, Depends(get_todo_service)]
+TodoReadServiceDep = Annotated[TodoReadServiceProtocol, Depends(get_todo_service)]
+TodoWriteServiceDep = Annotated[TodoWriteServiceProtocol, Depends(get_todo_service)]
+TodoAdminServiceDep = Annotated[TodoAdminServiceProtocol, Depends(get_todo_service)]
 
 
 def get_user_repository(session: SessionDep) -> SQLAlchemyUserRepository:
@@ -83,7 +91,7 @@ def get_password_hasher() -> PwdlibPasswordHasher:
 SQLAlchemyUserRepositoryDep = Annotated[
     SQLAlchemyUserRepository, Depends(get_user_repository)
 ]
-PwdlibPasswordHasherDep = Annotated[PwdlibPasswordHasher, Depends(get_password_hasher)]
+PwdlibPasswordHasherDep = Annotated[PasswordHasherProtocol, Depends(get_password_hasher)]
 
 
 def get_user_service(
@@ -94,16 +102,17 @@ def get_user_service(
     return UserService(repository, hasher, session)
 
 
-UserReadServiceDep = Annotated[UserReadService, Depends(get_user_service)]
-UserWriteServiceDep = Annotated[UserWriteService, Depends(get_user_service)]
-UserAdminServiceDep = Annotated[UserAdminService, Depends(get_user_service)]
+UserReadServiceDep = Annotated[UserReadServiceProtocol, Depends(get_user_service)]
+UserWriteServiceDep = Annotated[UserWriteServiceProtocol, Depends(get_user_service)]
+UserAdminServiceDep = Annotated[UserAdminServiceProtocol, Depends(get_user_service)]
 
 
 async def get_current_user(
     token: TokenDep,
+    token_service: TokenServiceDep,
     user_service: UserReadServiceDep,
 ) -> User:
-    username = verify_token(token, "access")
+    username = token_service.verify_token(token, "access")
     try:
         return user_service.get_by_username(username)
 
@@ -122,6 +131,7 @@ async def get_current_user(
 
 async def get_current_user_from_cookie(
     request: Request,
+    token_service: TokenServiceDep,
     user_service: UserReadServiceDep,
 ) -> User | None:
     refresh_token = request.cookies.get("refresh_token")
@@ -129,7 +139,7 @@ async def get_current_user_from_cookie(
         return None
 
     try:
-        username = verify_token(refresh_token, "refresh")
+        username = token_service.verify_token(refresh_token, "refresh")
         return user_service.get_by_username(username)
 
     except (HTTPValidationException, UserNotFoundError):

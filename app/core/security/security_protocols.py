@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import Protocol
 from app.schemas import HashedPassword
 
@@ -10,10 +9,8 @@ class PasswordHasherProtocol(Protocol):
     
 
 class TokenServiceProtocol(Protocol):
-    def verify_token(self, token: str, expected_type: str) -> str: ...
-
     def create_access_token(self, data: dict, expiration_time_minutes: float = 15) -> str: ...
 
     def create_refresh_token(self, data: dict, expiration_time_days: float = 7) -> str: ...
 
-    def _create_jwt_token(self, data: dict, token_type: str, expires_delta: timedelta) -> str: ...
+    def verify_token(self, token: str, expected_type: str) -> str: ...
