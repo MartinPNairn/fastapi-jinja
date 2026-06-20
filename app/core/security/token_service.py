@@ -3,7 +3,7 @@ from datetime import timedelta, datetime, UTC
 import jwt
 
 from app.core.config import Settings, get_settings
-from app.exceptions.security_exceptions import HTTPValidationException
+from app.exceptions.http_exceptions import HTTPValidationException
 from app.core.security.security_protocols import TokenServiceProtocol
 
 

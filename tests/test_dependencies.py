@@ -1,7 +1,7 @@
 import pytest
 
 from app.api.dependencies import get_current_user
-from app.exceptions.security_exceptions import HTTPValidationException
+from app.exceptions.http_exceptions import HTTPValidationException
 
 
 async def test_get_current_user(test_user, token_service, user_service):

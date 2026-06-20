@@ -10,7 +10,7 @@ from app.api.dependencies import get_session, get_current_user, get_user_service
 from app.core.security.password_hasher import PwdlibPasswordHasher
 from app.core.config import Settings, get_settings
 from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFoundError
-from app.exceptions.security_exceptions import HTTPValidationException
+from app.exceptions.http_exceptions import HTTPValidationException
 from app.repositories.user_repository import SQLAlchemyUserRepository
 from app.services.user_service import UserService
 from app.core.security.token_service import TokenService

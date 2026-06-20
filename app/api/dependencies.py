@@ -26,7 +26,7 @@ from app.services.user_protocols import (
 from app.core.security.security_protocols import PasswordHasherProtocol, TokenServiceProtocol
 from app.core.security.password_hasher import PwdlibPasswordHasher
 from app.core.security.token_service import TokenService
-from app.exceptions.security_exceptions import HTTPValidationException
+from app.exceptions.http_exceptions import HTTPValidationException
 from app.exceptions.user_exceptions import UserNotFoundError, UserServiceError
 
 

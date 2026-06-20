@@ -8,7 +8,7 @@ from app.exceptions.user_exceptions import (
     UserServiceError,
     InvalidCredentialsError,
 )
-from app.exceptions.security_exceptions import HTTPValidationException
+from app.exceptions.http_exceptions import HTTPValidationException
 from app.core.security.token_service import (
     create_access_token,
     create_refresh_token,
