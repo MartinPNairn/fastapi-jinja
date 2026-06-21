@@ -13,6 +13,7 @@ from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFound
 from app.exceptions.http_exceptions import HTTPValidationException
 from app.repositories.user_repository import SQLAlchemyUserRepository
 from app.services.user_service import UserService
+from app.services.auth_service import AuthService
 from app.core.security.token_service import TokenService
 
 
@@ -25,10 +26,10 @@ TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commi
 @pytest.fixture()
 def test_settings():
     return Settings(
-            ENVIRONMENT="test",
-            SECRET_KEY="some-secret-key-long-enough-hehe",
-            DATABASE_URL=SQLALCHEMY_TEST_URL,
-        )
+        ENVIRONMENT="test",
+        SECRET_KEY="some-secret-key-long-enough-hehe",
+        DATABASE_URL=SQLALCHEMY_TEST_URL,
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -87,6 +88,21 @@ def test_admin(session):
 
 
 @pytest.fixture()
+def test_ghost_user():
+    user = User(
+        id=999,
+        email="ghost@gmail.com",
+        username="ghost",
+        first_name="ghost",
+        last_name="phantom",
+        hashed_password="asd123",
+        phone_number=11223344,
+        role="user",
+    )
+    return user
+
+
+@pytest.fixture()
 def test_todo(session, test_user):
     todo = Todo(
         title="Do laundry",
@@ -111,7 +127,17 @@ def user_service(session):
 
 @pytest.fixture()
 def token_service(test_settings):
-    return TokenService(test_settings)
+    return TokenService(
+        test_settings,
+    )
+
+
+@pytest.fixture()
+def auth_service(token_service, user_service):
+    return AuthService(
+        token_service,
+        user_service,
+    )
 
 
 @pytest.fixture()

@@ -1,21 +1,18 @@
-class TokenError(Exception):
-    """
-    Base exception for all JWT-related errors.
-    """
+class BaseTokenError(Exception):
+    """Base exception for all JWT-related errors."""
+
+
+class TokenSubjectMissingError(BaseTokenError):
     pass
 
 
-class TokenSubjectMissingError(TokenError):
+class WrongTokenTypeError(BaseTokenError):
     pass
 
 
-class WrongTokenTypeError(TokenError):
+class ExpiredTokenError(BaseTokenError):
     pass
 
 
-class ExpiredTokenError(TokenError):
-    pass
-
-
-class InvalidTokenError(TokenError):
+class InvalidTokenError(BaseTokenError):
     pass

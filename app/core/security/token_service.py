@@ -4,6 +4,7 @@ import jwt
 
 from app.core.config import Settings, get_settings
 from app.exceptions.http_exceptions import HTTPValidationException
+from app.exceptions.auth_exceptions import TokenSubjectMissingError, WrongTokenTypeError, ExpiredTokenError, InvalidTokenError
 from app.core.security.security_protocols import TokenServiceProtocol
 
 
@@ -67,28 +68,16 @@ class TokenService(TokenServiceProtocol):
             token_type = payload.get("token_type")
 
             if not username:
-                raise HTTPValidationException(
-                    status_code=401,
-                    detail="Invalid token: Subject missing"
-                )
+                raise TokenSubjectMissingError()
             if token_type != expected_type:
-                raise HTTPValidationException(
-                    status_code=401,
-                    detail="Invalid token type",
-                )
+                raise WrongTokenTypeError()
             return username
 
         except jwt.ExpiredSignatureError:
-            raise HTTPValidationException(
-                status_code=401,
-                detail="Token has expired",
-            )
+            raise ExpiredTokenError()
 
         except jwt.InvalidTokenError:
-            raise HTTPValidationException(
-                status_code=401,
-                detail="Invalid Token",
-            )
+            raise InvalidTokenError()
 
 
 # ------------------------------------------------------

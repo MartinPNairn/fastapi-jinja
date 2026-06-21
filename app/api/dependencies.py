@@ -33,6 +33,12 @@ from app.core.security.password_hasher import PwdlibPasswordHasher
 from app.core.security.token_service import TokenService
 from app.exceptions.http_exceptions import HTTPValidationException
 from app.exceptions.user_exceptions import UserNotFoundError, UserServiceError
+from app.exceptions.auth_exceptions import (
+    TokenSubjectMissingError,
+    WrongTokenTypeError,
+    ExpiredTokenError,
+    InvalidTokenError,
+)
 
 
 templates = Jinja2Templates(directory="app/frontend/templates")
@@ -125,15 +131,22 @@ AuthServiceDep = Annotated[AuthServiceProtocol, Depends(get_auth_service)]
 
 async def get_current_user(
     token: TokenDep,
-    token_service: TokenServiceDep,
-    user_service: UserReadServiceDep,
+    auth_service: AuthServiceDep,
 ) -> User:
-    username = token_service.verify_token(token, "access")
     try:
-        return user_service.get_by_username(username)
+        return auth_service.get_user_from_token(token, "access")
 
-    except UserNotFoundError:
-        raise HTTPValidationException(status_code=401, detail="Authorization failed.")
+    except (
+        TokenSubjectMissingError,
+        WrongTokenTypeError,
+        ExpiredTokenError,
+        InvalidTokenError,
+        UserNotFoundError,
+    ) as e:
+        raise HTTPValidationException(
+            status_code=401,
+            detail="Authorization failed.",
+        ) from e
 
     except UserServiceError as e:
         raise HTTPException(
@@ -142,7 +155,7 @@ async def get_current_user(
         ) from e
 
 
-async def get_current_user_from_cookie(
+async def get_current_user_from_cookie( # TODO: IMPLEMENT AUTH SERVICE
     request: Request,
     token_service: TokenServiceDep,
     user_service: UserReadServiceDep,

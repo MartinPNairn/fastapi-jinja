@@ -7,7 +7,7 @@ from app.schemas.auth import LoginCredentials
 from app.core.config import get_settings
 
 
-settings = get_settings()
+settings = get_settings() # TODO: REPLACE TOKEN FUNCTIONS WITH NEW SERVICES
 
 
 def test_authenticate_user(test_user, user_service):

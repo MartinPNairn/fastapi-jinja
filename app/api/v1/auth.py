@@ -78,29 +78,29 @@ def refresh_for_new_access_token(
     refresh_token = request.cookies.get("refresh_token")
     if refresh_token is None:
         raise HTTPValidationException(
+            status_code=401,
             detail="Missing refresh token",
-            )
+        )
     try:
         username = verify_token(refresh_token, "refresh")
         user = user_service.get_by_username(username)
+        new_access_token = create_access_token(
+            data={"sub": user.username, "id": user.id, "role": user.role},
+            expiration_time_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+        )
+        return Token(access_token=new_access_token, token_type="bearer")
 
     except UserNotFoundError as e:
         raise HTTPValidationException(
-            status_code=401, 
-            detail="User not found"
-            ) from e
-    
+            status_code=401,
+            detail="User not found",
+        ) from e
+
     except UserServiceError as e:
         raise HTTPException(
             status_code=500,
             detail="Database error.",
         ) from e
-
-    new_access_token = create_access_token(
-        data={"sub": user.username, "id": user.id, "role": user.role},
-        expiration_time_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-    )
-    return Token(access_token=new_access_token, token_type="bearer")
 
 
 @router.post("/logout")
