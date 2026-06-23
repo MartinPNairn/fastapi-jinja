@@ -1,13 +1,8 @@
-import jwt
 import pytest
 
-from app.core.security.token_service import create_access_token
 from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFoundError
+from app.exceptions.auth_exceptions import InvalidTokenError
 from app.schemas.auth import LoginCredentials
-from app.core.config import get_settings
-
-
-settings = get_settings() # TODO: REPLACE TOKEN FUNCTIONS WITH NEW SERVICES
 
 
 def test_authenticate_user(test_user, user_service):
@@ -37,16 +32,35 @@ def test_authenticate_user_wrong_password(test_user, user_service):
         user_service.authenticate(login_credentials)
 
 
-def test_create_access_token(test_user):
-    data = {"sub": test_user.username, "id": test_user.id, "role": test_user.role}
-    expiration_time = 15
-    token = create_access_token(data=data, expiration_time_minutes=expiration_time)
+def test_issue_access_token(test_user, auth_service, token_service):
+    token = auth_service.issue_access_token(test_user)
     assert token is not None
-    assert isinstance(token, str)
+    username = token_service.verify_token(token, "access")
+    assert username == test_user.username
 
-    payload = jwt.decode(
-        token, settings.SECRET_KEY, algorithms=[settings.HASHING_ALGORITHM]
-    )
-    assert payload["id"] == test_user.id
-    assert payload["sub"] == test_user.username
-    assert payload["role"] == test_user.role
+
+def test_issue_refresh_token(test_user, auth_service, token_service):
+    token = auth_service.issue_refresh_token(test_user)
+    assert token is not None
+    username = token_service.verify_token(token, "refresh")
+    assert username == test_user.username
+
+
+def test_get_user_from_access_token(test_user, auth_service):
+    token = auth_service.issue_access_token(test_user)
+    assert token is not None
+    user = auth_service.get_user_from_token(token, "access")
+    assert user == test_user
+
+
+def test_get_user_from_access_token_ghost_user(test_ghost_user, auth_service):
+    token = auth_service.issue_access_token(test_ghost_user)
+    assert token is not None
+    with pytest.raises(UserNotFoundError):
+        auth_service.get_user_from_token(token, "access")
+
+
+def test_get_user_from_access_token_no_token(auth_service):
+    token = None
+    with pytest.raises(InvalidTokenError):
+        auth_service.get_user_from_token(token, "access")
