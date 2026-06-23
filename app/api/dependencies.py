@@ -155,20 +155,24 @@ async def get_current_user(
         ) from e
 
 
-async def get_current_user_from_cookie( # TODO: IMPLEMENT AUTH SERVICE
+async def get_current_user_from_cookie(
     request: Request,
-    token_service: TokenServiceDep,
-    user_service: UserReadServiceDep,
+    auth_service: AuthServiceDep,
 ) -> User | None:
-    refresh_token = request.cookies.get("refresh_token")
-    if not refresh_token:
-        return None
-
     try:
-        username = token_service.verify_token(refresh_token, "refresh")
-        return user_service.get_by_username(username)
+        refresh_token = request.cookies.get("refresh_token")
+        if not refresh_token:
+            return None
+        
+        return auth_service.get_user_from_token(refresh_token, "refresh")
 
-    except (HTTPValidationException, UserNotFoundError):
+    except (
+        TokenSubjectMissingError,
+        WrongTokenTypeError,
+        ExpiredTokenError,
+        InvalidTokenError,
+        UserNotFoundError,
+    ):
         return None
 
     except UserServiceError as e:
