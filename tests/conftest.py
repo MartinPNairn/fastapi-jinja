@@ -10,15 +10,26 @@ from app.api.dependencies import get_session, get_current_user, get_user_service
 from app.core.security.password_hasher import PwdlibPasswordHasher
 from app.core.config import Settings, get_settings
 from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFoundError
-from app.exceptions.security_exceptions import HTTPValidationException
+from app.exceptions.http_exceptions import HTTPValidationException
 from app.repositories.user_repository import SQLAlchemyUserRepository
 from app.services.user_service import UserService
+from app.services.auth_service import AuthService
+from app.core.security.token_service import TokenService
 
 
 SQLALCHEMY_TEST_URL = "sqlite:///./test_db.db"
 
 engine = create_engine(SQLALCHEMY_TEST_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+
+@pytest.fixture()
+def test_settings():
+    return Settings(
+        ENVIRONMENT="test",
+        SECRET_KEY="some-secret-key-long-enough-hehe",
+        DATABASE_URL=SQLALCHEMY_TEST_URL,
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -77,6 +88,21 @@ def test_admin(session):
 
 
 @pytest.fixture()
+def test_ghost_user():
+    user = User(
+        id=999,
+        email="ghost@gmail.com",
+        username="ghost",
+        first_name="ghost",
+        last_name="phantom",
+        hashed_password="asd123",
+        phone_number=11223344,
+        role="user",
+    )
+    return user
+
+
+@pytest.fixture()
 def test_todo(session, test_user):
     todo = Todo(
         title="Do laundry",
@@ -100,6 +126,21 @@ def user_service(session):
 
 
 @pytest.fixture()
+def token_service(test_settings):
+    return TokenService(
+        test_settings,
+    )
+
+
+@pytest.fixture()
+def auth_service(token_service, user_service):
+    return AuthService(
+        token_service,
+        user_service,
+    )
+
+
+@pytest.fixture()
 def valid_todo_payload():
     return {
         "title": "A new todo",
@@ -110,16 +151,13 @@ def valid_todo_payload():
 
 
 @pytest.fixture()
-def client(session):
+def client(session, test_settings):
     """
     Return TestClient with dependency overrides for settings, db and current_user.
     """
 
     def get_test_settings():
-        return Settings(
-            SECRET_KEY="some-secret-key-long-enough-hehe",
-            DATABASE_URL=SQLALCHEMY_TEST_URL,
-        )
+        return test_settings
 
     def _make_client(user: User | None = None):
         def override_get_session():
@@ -129,8 +167,8 @@ def client(session):
             if user is None:
                 raise HTTPValidationException(
                     status_code=401,
-                    detail="Authorization failed."
-                    )
+                    detail="Authorization failed.",
+                )
             return user
 
         app.dependency_overrides[get_session] = override_get_session

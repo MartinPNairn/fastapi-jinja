@@ -6,7 +6,7 @@ from app.exceptions.user_exceptions import (
     InvalidCredentialsError,
     StaleUserError,
 )
-from app.exceptions.security_exceptions import HTTPValidationException
+from app.exceptions.http_exceptions import HTTPValidationException
 from app.schemas import (
     ChangePasswordRequest,
     ChangePhoneRequest,
