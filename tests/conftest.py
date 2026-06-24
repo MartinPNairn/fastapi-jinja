@@ -6,10 +6,9 @@ from sqlalchemy.orm import sessionmaker
 from app.models import User, Todo
 from app.db.base import Base
 from app.main import app
-from app.api.dependencies import get_session, get_current_user, get_user_service
+from app.api.dependencies import get_session, get_current_user
 from app.core.security.password_hasher import PwdlibPasswordHasher
 from app.core.config import Settings, get_settings
-from app.exceptions.user_exceptions import InvalidCredentialsError, UserNotFoundError
 from app.exceptions.http_exceptions import HTTPValidationException
 from app.repositories.user_repository import SQLAlchemyUserRepository
 from app.services.user_service import UserService
@@ -178,34 +177,3 @@ def client(session, test_settings):
 
     yield _make_client
     app.dependency_overrides.clear()
-
-
-@pytest.fixture()
-def mock_security(monkeypatch):
-
-    class MockUser:
-        id = 1
-        email = "juan@gmail.com"
-        username = "juanperez"
-        first_name = "Juan"
-        last_name = "Perez"
-        hashed_password = "hashedpassjuan123"
-        phone_number = 11223344
-        role = "user"
-
-    class MockUserService:
-        def authenticate(self, credentials_data):
-            if credentials_data.username != "juanperez":
-                raise UserNotFoundError()
-            if (
-                credentials_data.username == "juanperez"
-                and credentials_data.password == "secret"
-            ):
-                return MockUser()
-            raise InvalidCredentialsError()
-
-    def mock_create_access_token(data: dict, expiration_time_minutes):
-        return "jwtpayload.jwtheader.jwtsignature"
-
-    app.dependency_overrides[get_user_service] = lambda: MockUserService()
-    monkeypatch.setattr("app.api.v1.auth.create_access_token", mock_create_access_token)
