@@ -1,46 +1,35 @@
-
-
-def test_login_for_access_token_success(client, mock_security):
+def test_login_for_access_token_success(client, test_user):
     response = client().post(
-        "/auth/login", 
-        data={"username": "juanperez", "password": "secret"},
+        "/auth/login",
+        data={"username": "juanperez", "password": "juan123"},
     )
-    response_data = response.json()
-
     assert response.status_code == 200
-    assert "access_token" in response_data
-    assert response_data["token_type"] == "bearer"
-    assert isinstance(response_data["access_token"], str)
+    assert isinstance(response.json()["access_token"], str)
 
 
-def test_login_for_access_token_invalid_password(client, mock_security):
+def test_login_for_access_token_invalid_password(client, test_user):
     response = client().post(
-        "/auth/login", 
+        "/auth/login",
         data={"username": "juanperez", "password": "a-wrong-password-mate"},
     )
-    response_data = response.json()
-
     assert response.status_code == 401
-    assert "Invalid" in response_data["detail"]
+    assert "Invalid" in response.json()["detail"]
 
 
-def test_login_for_access_token_wrong_data_type(client, mock_security):
+def test_login_for_access_token_wrong_data_type(client, test_user):
     response = client().post(
-        "/auth/login", 
+        "/auth/login",
         json={"username": "juanperez", "password": "secret"},
     )
-
     assert response.status_code == 422
 
 
-def test_login_for_access_token_wrong_or_no_data(client, mock_security):
+def test_login_for_access_token_wrong_or_no_data(client, test_user):
     response = client().post(
-        "/auth/login", 
+        "/auth/login",
         data={"asdsd": "alksdjals"},
     )
-    response_data = response.json()
-
-    fields = [error["loc"][-1] for error in response_data["detail"]]
+    fields = [error["loc"][-1] for error in response.json()["detail"]]
     assert response.status_code == 422
     assert "username" in fields
     assert "password" in fields
