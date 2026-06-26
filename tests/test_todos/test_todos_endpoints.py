@@ -1,10 +1,14 @@
+from app.main import app
+from app.api.dependencies import get_todo_service
 from app.models import Todo
+from app.schemas import TodoResponse
+from app.exceptions.todo_exceptions import TodoServiceError
 from tests.utils import (
     get_fresh_entry_by_primary_key,
     get_fresh_entry_with_conditions,
     entry_is_in_db,
 )
-from app.schemas import TodoResponse
+
 
 
 def test_read_all_authenticated(client, test_user, test_todo):
@@ -108,3 +112,16 @@ def test_delete_todo_not_found(client, test_user, test_todo):
     response = test_client.delete(f"/todos/delete/{test_todo.id + 999}")
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
+
+
+def test_service_error_is_handled_as_500(client, test_user):
+    class RaisingTodoService:
+        def get_all_for_owner(self, owner):
+            raise TodoServiceError()
+
+    test_client = client(test_user)
+    app.dependency_overrides[get_todo_service] = lambda: RaisingTodoService()
+    response = test_client.get("/todos/all")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Database error."}
+    
