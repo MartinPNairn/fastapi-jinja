@@ -22,21 +22,16 @@ async def read_all(
     return todos
 
 
-@router.post("/create", status_code=status.HTTP_201_CREATED, response_model=TodoResponse)
+@router.post(
+    "/create", status_code=status.HTTP_201_CREATED, response_model=TodoResponse
+)
 async def create_todo(
     user: CurrentUserDep,
     todo_data: TodoRequest,
     todo_service: TodoWriteServiceDep,
 ) -> Todo:
-    try:
-        new_todo = todo_service.create(todo_data, user)
-        return new_todo
-
-    except TodoAlreadyExistsError as e:
-        raise HTTPException(
-            status_code=409,
-            detail="Error while creating new To-Do.",
-        ) from e
+    new_todo = todo_service.create(todo_data, user)
+    return new_todo
 
 
 @router.put("/update/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -46,18 +41,11 @@ async def update_todo(
     user: CurrentUserDep,
     todo_service: TodoWriteServiceDep,
 ) -> None:
-    try:
-        todo_service.update(
-            new_todo_data,
-            todo_id,
-            user,
-        )
-
-    except TodoNotFoundError as e:
-        raise HTTPException(
-            status_code=404,
-            detail="To-Do to update not found.",
-        ) from e
+    todo_service.update(
+        new_todo_data,
+        todo_id,
+        user,
+    )
 
 
 @router.delete("/delete/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -66,17 +54,10 @@ async def delete_todo(
     todo_service: TodoWriteServiceDep,
     user: CurrentUserDep,
 ) -> None:
-    try:
-        todo_service.delete_for_owner(
-            todo_id,
-            user,
-        )
-
-    except TodoNotFoundError as e:
-        raise HTTPException(
-            status_code=404,
-            detail="To-Do to delete not found.",
-        ) from e
+    todo_service.delete_for_owner(
+        todo_id,
+        user,
+    )
 
 
 @router.get(
@@ -87,11 +68,4 @@ async def get_todo(
     todo_service: TodoReadServiceDep,
     user: CurrentUserDep,
 ) -> Todo:
-    try:
-        return todo_service.get_by_id(todo_id, user)
-
-    except TodoNotFoundError as e:
-        raise HTTPException(
-            status_code=404,
-            detail="To-Do not found.",
-        ) from e
+    return todo_service.get_by_id(todo_id, user)

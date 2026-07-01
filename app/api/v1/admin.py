@@ -27,14 +27,7 @@ async def get_all_todos(
     user: CurrentUserAdminDep,
     todo_service: TodoAdminServiceDep,
 ) -> list[TodoResponse]:
-    try:
-        return todo_service.get_all()  # pyright: ignore[reportReturnType]
-
-    except TodoServiceError as e:
-        raise HTTPException(
-            status_code=500,
-            detail="Database error",
-        ) from e
+    return todo_service.get_all()  # pyright: ignore[reportReturnType]
 
 
 @router.delete("/todos/delete/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -50,10 +43,4 @@ async def delete_todo(
         raise HTTPException(
             status_code=404,
             detail="Todo not found.",
-        ) from e
-
-    except TodoServiceError as e:
-        raise HTTPException(
-            status_code=500,
-            detail="Database error",
         ) from e
