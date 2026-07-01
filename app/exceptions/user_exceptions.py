@@ -1,3 +1,6 @@
+from app.exceptions.base import ServiceError
+
+
 class UserError(Exception):
     pass
 
@@ -10,13 +13,13 @@ class UserAlreadyExistsError(UserError):
     pass
 
 
-class UserServiceError(UserError):
-    pass
-
-
 class StaleUserError(UserError):
     pass
 
 
 class InvalidCredentialsError(UserError):
+    pass
+
+
+class UserServiceError(UserError, ServiceError):
     pass

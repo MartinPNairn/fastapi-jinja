@@ -148,7 +148,7 @@ async def get_current_user(
             detail="Authorization failed.",
         ) from e
 
-    except UserServiceError as e:
+    except UserServiceError as e: # TODO: UPDATE TESTS BEFORE DELETING THIS
         raise HTTPException(
             status_code=500,
             detail="Database error.",
@@ -175,7 +175,7 @@ async def get_current_user_from_cookie(
     ):
         return None
 
-    except UserServiceError as e:
+    except UserServiceError as e: # TODO: UPDATE TESTS BEFORE DELETING THIS
         raise HTTPException(
             status_code=500,
             detail="Database error.",

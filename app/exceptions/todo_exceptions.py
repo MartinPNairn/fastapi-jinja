@@ -1,3 +1,6 @@
+from app.exceptions.base import ServiceError
+
+
 class TodoError(Exception):
     pass
 
@@ -10,5 +13,5 @@ class TodoAlreadyExistsError(TodoError):
     pass
 
 
-class TodoServiceError(TodoError):
+class TodoServiceError(TodoError, ServiceError):
     pass

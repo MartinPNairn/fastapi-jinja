@@ -38,11 +38,6 @@ async def create_user(
             status_code=409,
         ) from e
 
-    except UserServiceError as e:
-        raise HTTPException(
-            status_code=500,
-        ) from e
-
 
 @router.put("/update-password", status_code=status.HTTP_204_NO_CONTENT)
 async def update_password(
@@ -64,11 +59,6 @@ async def update_password(
             status_code=401,
         ) from e
 
-    except UserServiceError as e:
-        raise HTTPException(
-            status_code=500,
-        ) from e
-
 
 @router.put("/update-phone", status_code=status.HTTP_204_NO_CONTENT)
 async def update_phone(
@@ -82,9 +72,4 @@ async def update_phone(
     except StaleUserError as e:
         raise HTTPException(
             status_code=401,
-        ) from e
-
-    except UserServiceError as e:
-        raise HTTPException(
-            status_code=500,
         ) from e

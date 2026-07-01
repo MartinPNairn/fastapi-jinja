@@ -27,39 +27,20 @@ async def login_for_access_and_refresh_token(
     user_service: UserReadServiceDep,
     auth_service: AuthServiceDep,
 ) -> Token:
-    try:
-        user = user_service.authenticate(credentials_data)
-        access_token = auth_service.issue_access_token(user)
-        refresh_token = auth_service.issue_refresh_token(user)
+    user = user_service.authenticate(credentials_data)
+    access_token = auth_service.issue_access_token(user)
+    refresh_token = auth_service.issue_refresh_token(user)
 
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,
-            secure=settings.ENVIRONMENT == "production",
-            path="/",
-            max_age=int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
-        )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=settings.ENVIRONMENT == "production",
+        path="/",
+        max_age=int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
+    )
 
-        return Token(access_token=access_token, token_type="bearer")
-
-    except UserNotFoundError as e:
-        raise HTTPValidationException(
-            status_code=404,
-            detail="User not found.",
-        ) from e
-
-    except InvalidCredentialsError as e:
-        raise HTTPValidationException(
-            status_code=401,
-            detail="Invalid credentials.",
-        ) from e
-
-    except UserServiceError as e:
-        raise HTTPException(
-            status_code=500,
-            detail="Database error.",
-        ) from e
+    return Token(access_token=access_token, token_type="bearer")
 
 
 @router.post("/refresh")
